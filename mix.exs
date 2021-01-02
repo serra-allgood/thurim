@@ -46,6 +46,7 @@ defmodule Thurim.MixProject do
       {:ecto_psql_extras, "~> 0.2"},
       {:bcrypt_elixir, "~> 2.0"},
       {:corsica, "~> 1.1"},
+      {:nebulex, "~> 1.2.0"},
     ]
   end
 

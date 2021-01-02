@@ -14,9 +14,10 @@ defmodule Thurim.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Thurim.PubSub},
       # Start the Endpoint (http/https)
-      ThurimWeb.Endpoint
+      ThurimWeb.Endpoint,
       # Start a worker by calling: Thurim.Worker.start_link(arg)
       # {Thurim.Worker, arg}
+      {Thurim.Cache, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

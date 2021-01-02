@@ -7,6 +7,9 @@
 # General application configuration
 use Mix.Config
 
+config :thurim, Thurim.Cache,
+  gc_interval: 86_400 # 24 hrs
+
 config :thurim,
   ecto_repos: [Thurim.Repo],
   generators: [binary_id: true]

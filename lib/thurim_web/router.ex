@@ -13,7 +13,7 @@ defmodule ThurimWeb.Router do
   scope "/_matrix/client", ThurimWeb.Matrix do
     pipe_through :api
 
-    get "versions", VersionsController, :client
+    get "/versions", VersionsController, :client
   end
 
   scope "/_matrix", ThurimWeb.Matrix do
@@ -21,7 +21,7 @@ defmodule ThurimWeb.Router do
 
     scope "/client", Client do
       scope "/r0", R0 do
-        get "login", UserController, :index
+        get "/login", UserController, :index
       end
     end
 
@@ -29,7 +29,7 @@ defmodule ThurimWeb.Router do
       scope "/r0", R0 do
         pipe_through :interactive_auth
 
-        post "register", UserController, :create
+        post "/register", UserController, :create
       end
     end
   end

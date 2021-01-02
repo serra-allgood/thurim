@@ -7,7 +7,7 @@ defmodule Thurim.User.Account do
   schema "accounts" do
     field :is_deactivated, :boolean, default: false
     field :password, :string, virtual: true
-    field :password_hash, :string
+    field :password_hash, :string, redacted: true
 
     timestamps()
   end
