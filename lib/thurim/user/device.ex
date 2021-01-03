@@ -1,5 +1,6 @@
 defmodule Thurim.User.Device do
   use Ecto.Schema
+  alias Thurim.User.Account
   import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -11,7 +12,7 @@ defmodule Thurim.User.Device do
     field :ip, :string
     field :last_seen_ts, :naive_datetime
     field :user_agent, :string
-    field :account_id, :binary_id
+    belongs_to :account, Account, references: :localpart, type: :string
 
     timestamps()
   end
@@ -20,7 +21,8 @@ defmodule Thurim.User.Device do
   def changeset(device, attrs) do
     device
     |> cast(attrs, [:access_token, :device_id, :display_name, :last_seen_ts, :ip, :user_agent])
-    |> validate_required([:access_token, :device_id, :display_name, :last_seen_ts, :ip, :user_agent])
+    |> validate_required([:access_token, :device_id, :display_name])
     |> unique_constraint(:access_token)
+    |> unique_constraint([:account_id, :device_id])
   end
 end

@@ -47,6 +47,8 @@ defmodule Thurim.MixProject do
       {:bcrypt_elixir, "~> 2.0"},
       {:corsica, "~> 1.1"},
       {:nebulex, "~> 1.2.0"},
+      {:ua_parser, "~> 1.8"},
+      {:elixir_uuid, "~> 1.2"},
     ]
   end
 

@@ -49,10 +49,10 @@ defmodule ThurimWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug Corsica,
-    origins: "*", #~r{^https?://(.*\.)?.*\..*$},
+    origins: "*",
     allow_credentials: true,
     allow_methods: :all,
-    allow_headers: ["Content-Type"],
+    allow_headers: ["Content-Type", "Authorization"],
     log: [rejected: :error, invalid: :warn, accepted: :debug]
   plug ThurimWeb.Router
 end

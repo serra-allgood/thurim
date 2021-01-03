@@ -1,5 +1,6 @@
 defmodule Thurim.User.Account do
   use Ecto.Schema
+  alias Thurim.User.Device
   import Ecto.Changeset
 
   @primary_key {:localpart, :string, autogenerate: false}
@@ -10,6 +11,8 @@ defmodule Thurim.User.Account do
     field :password_hash, :string, redacted: true
 
     timestamps()
+
+    has_many :devices, Device, foreign_key: :account_id
   end
 
   @doc false
@@ -19,6 +22,7 @@ defmodule Thurim.User.Account do
     |> validate_required([:localpart, :password, :is_deactivated])
     |> unique_constraint(:localpart)
     |> hash_password()
+    |> cast_assoc(:devices)
   end
 
   defp hash_password(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do

@@ -7,17 +7,40 @@ defmodule Thurim.User do
   alias Thurim.Repo
 
   alias Thurim.User.Account
+  alias Thurim.User.Device
+
+  def mx_user_id(localpart) do
+    "@" <> localpart <> ":" <> ThurimWeb.Endpoint.config(:domain)
+  end
+
+  def generate_localpart() do
+    UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
+  end
+
+  def generate_device_id(ua) do
+    "#{ua}/#{ua.os}" |> Base.url_encode64(padding: false, ignore: :whitespace)
+  end
 
   def authenticate(localpart, password) do
-    with user when not is_nil(user) <- get_account(localpart),
-         password_hash when not is_nil(password_hash) <- user.password_hash do
+    with account when not is_nil(account) <- get_account(localpart),
+         password_hash when not is_nil(password_hash) <- account.password_hash do
       if Bcrypt.verify_pass(password, password_hash) do
-        {:ok, user}
+        {:ok, account}
       else
         {:error, :invalid_login}
       end
     else
       _ -> {:error, :not_found}
+    end
+  end
+
+  def register(params) do
+    with device <- Device.changeset(%Device{}, params),
+         account <- Account.changeset(%Account{devices: [device]}, params),
+         {:ok, res} <- Repo.insert(account) do
+      {:ok, res}
+    else
+      error -> error
     end
   end
 
