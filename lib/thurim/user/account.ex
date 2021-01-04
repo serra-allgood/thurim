@@ -1,6 +1,7 @@
 defmodule Thurim.User.Account do
   use Ecto.Schema
-  alias Thurim.User.Device
+  alias Thurim.Devices.Device
+  alias Thurim.AccessTokens.AccessToken
   import Ecto.Changeset
 
   @primary_key {:localpart, :string, autogenerate: false}
@@ -12,7 +13,8 @@ defmodule Thurim.User.Account do
 
     timestamps()
 
-    has_many :devices, Device, foreign_key: :account_id
+    has_many :devices, Device, foreign_key: :localpart
+    has_many :access_tokens, AccessToken, foreign_key: :localpart
   end
 
   @doc false

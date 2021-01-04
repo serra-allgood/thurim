@@ -17,7 +17,8 @@ defmodule Thurim.Application do
       ThurimWeb.Endpoint,
       # Start a worker by calling: Thurim.Worker.start_link(arg)
       # {Thurim.Worker, arg}
-      {Thurim.Cache, []}
+      {Thurim.AccessTokens.AccessTokenCache, []},
+      {ThurimWeb.AuthSessionCache, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

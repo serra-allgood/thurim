@@ -2,7 +2,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   alias Plug.Conn
   alias Thurim.Utils
   alias Thurim.User
-  alias Thurim.Cache
+  alias ThurimWeb.AuthSessionCache
   require Logger
   import Phoenix.Controller, only: [json: 2]
 
@@ -22,30 +22,26 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
       |> pass_or_challenge()
     else
       session_id = Utils.crypto_random_string()
-      interactive_auths = set_session(%{id: session_id, completed_stages: [], auth_completed: false})
-      pass_or_challenge(conn, interactive_auths[session_id])
+      session = set_session(%{id: session_id, completed_stages: [], auth_completed: false})
+      pass_or_challenge(conn, session)
     end
   end
 
   defp set_session(session) do
-    interactive_auths = Cache.get(:interactive_auths)
-    if is_nil(interactive_auths) do
-      Cache.set(:interactive_auths, %{session.id => session})
-    else
-      Cache.set(:interactive_auths, Map.put(interactive_auths, session.id, session))
+    case AuthSessionCache.add(session.id, session) do
+      {:ok, session} -> session
+      :error -> AuthSessionCache.get(session.id)
     end
   end
 
   defp get_session(session_id) do
-    Cache.get(:interactive_auths)[session_id]
+    AuthSessionCache.get(session_id)
   end
 
   defp valid_auth?(auth) when is_nil(auth), do: false
 
   defp valid_auth?(auth) do
-    session = get_session(auth["session"])
-
-    auth["session"] == session.id
+    get_session(auth["session"]) != nil
   end
 
   defp check_stage(conn, %{"type" => type} = auth) when type == "m.login.dummy" do
@@ -60,8 +56,8 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
 
     case User.authenticate(user, password) do
       {:ok, user} ->
-        Conn.put_session(conn, :current_user, user.localpart)
         add_completed_stage(type, session)
+        Conn.assign(conn, :current_user, user)
 
       {:error, :invalid_login} ->
         conn

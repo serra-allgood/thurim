@@ -7,7 +7,10 @@
 # General application configuration
 use Mix.Config
 
-config :thurim, Thurim.Cache,
+config :thurim, ThurimWeb.AuthSessionCache,
+  gc_interval: 60 * 60 * 10 # 10 minutes
+
+config :thurim, Thurim.AccessToken.AccessTokenCache,
   gc_interval: 86_400 # 24 hrs
 
 config :thurim,

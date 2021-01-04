@@ -3,7 +3,7 @@ defmodule Thurim.Repo.Migrations.CreateProfiles do
 
   def change do
     create table(:profiles, primary_key: false) do
-      add :localpart, :text, primary_key: true
+      add :localpart, :text, null: false, primary_key: true
       add :display_name, :text
       add :avatar_url, :text
 
