@@ -8,6 +8,8 @@ defmodule Thurim.User do
 
   alias Thurim.User.Account
   alias Thurim.User.Device
+  alias Thurim.Profiles
+  alias Thurim.AccountData
 
   def mx_user_id(localpart) do
     "@" <> localpart <> ":" <> ThurimWeb.Endpoint.config(:domain)
@@ -37,8 +39,10 @@ defmodule Thurim.User do
   def register(params) do
     with device <- Device.changeset(%Device{}, params),
          account <- Account.changeset(%Account{devices: [device]}, params),
-         {:ok, res} <- Repo.insert(account) do
-      {:ok, res}
+         {:ok, account} <- Repo.insert(account),
+         {:ok, _} <- Profiles.create_profile(%{"localpart" => account.localpart}),
+         {:ok, _} <- AccountData.create_push_rules(%{"localpart" => account.localpart}) do
+      {:ok, account}
     else
       error -> error
     end
