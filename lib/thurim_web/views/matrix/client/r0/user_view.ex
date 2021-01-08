@@ -7,15 +7,19 @@ defmodule ThurimWeb.Matrix.Client.R0.UserView do
   end
 
   def render("create.json", %{errors: errors}) do
-    %{errors: errors}
+    %{errors: errors.errors}
   end
 
   def render("create.json", %{inhibit_login: true, account: account}) do
     %{user_id: User.mx_user_id(account.localpart)}
   end
 
-  def render("create.json", %{inhibit_login: false, account: account, signed_access_token: signed_access_token}) do
-    device = account.devices |> List.first()
+  def render("create.json", %{
+        inhibit_login: false,
+        account: account,
+        device: device,
+        signed_access_token: signed_access_token
+      }) do
     %{
       user_id: User.mx_user_id(account.localpart),
       access_token: signed_access_token,

@@ -22,3 +22,5 @@ config :thurim, ThurimWeb.Endpoint,
 config :logger, level: :warn
 
 config :bcrypt_elixir, :log_rounds, 4
+
+config :thurim, ThurimWeb.Endpoint, domain: "localhost"

@@ -21,10 +21,9 @@ defmodule Thurim.User.Account do
   def changeset(account, attrs) do
     account
     |> cast(attrs, [:localpart, :password, :is_deactivated])
-    |> validate_required([:localpart, :password, :is_deactivated])
-    |> unique_constraint(:localpart)
+    |> validate_required([:localpart, :is_deactivated])
+    |> unique_constraint(:localpart, name: :accounts_pkey, message: "user_in_use")
     |> hash_password()
-    |> cast_assoc(:devices)
   end
 
   defp hash_password(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset) do

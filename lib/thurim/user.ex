@@ -40,7 +40,7 @@ defmodule Thurim.User do
          {:ok, _} <- Profiles.create_profile(%{"localpart" => account.localpart}),
          {:ok, _} <- AccountData.create_push_rules(%{"localpart" => account.localpart}),
          {:ok, signed_access_token} <- AccessTokens.sign(device.session_id, account.localpart) do
-      {:ok, account, signed_access_token}
+      {:ok, account, device, signed_access_token}
     end
   end
 

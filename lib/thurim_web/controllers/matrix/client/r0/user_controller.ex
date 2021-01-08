@@ -1,5 +1,6 @@
 defmodule ThurimWeb.Matrix.Client.R0.UserController do
   use ThurimWeb, :controller
+  use ThurimWeb.Controllers.MatrixController
   alias Thurim.User
   alias Thurim.Utils
   alias Thurim.Devices
@@ -26,15 +27,16 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
       )
 
     case User.register(register_params) do
-      {:ok, account, signed_access_token} ->
+      {:ok, account, device, signed_access_token} ->
         render(conn, "create.json",
           inhibit_login: register_params["inhibit_login"],
           account: account,
+          device: device,
           signed_access_token: signed_access_token
         )
 
       {:error, errors} ->
-        render(conn, "create.json", errors: errors)
+        send_changeset_error_to_json(conn, errors)
     end
   end
 end

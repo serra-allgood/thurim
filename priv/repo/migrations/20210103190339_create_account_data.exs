@@ -6,7 +6,7 @@ defmodule Thurim.Repo.Migrations.CreateAccountData do
       add :localpart, :text, null: false, primary_key: true
       add :room_id, :text, null: false, default: "", primary_key: true
       add :type, :text, null: false, primary_key: true
-      add :content, :text, null: false
+      add :content, :map, null: false
 
       timestamps()
     end

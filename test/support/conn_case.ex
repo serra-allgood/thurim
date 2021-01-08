@@ -28,6 +28,17 @@ defmodule ThurimWeb.ConnCase do
 
       # The default endpoint for testing
       @endpoint ThurimWeb.Endpoint
+
+      def get_auth_session(conn) do
+        %{"session" => session} =
+          conn
+          |> put_req_header("content-type", "application/json")
+          |> put_req_header("user-agent", "TEST")
+          |> post(Routes.user_path(conn, :create))
+          |> json_response(401)
+
+        session
+      end
     end
   end
 

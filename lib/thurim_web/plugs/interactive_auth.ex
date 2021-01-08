@@ -28,10 +28,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   end
 
   defp set_session(session) do
-    case AuthSessionCache.add(session.id, session) do
-      {:ok, session} -> session
-      :error -> AuthSessionCache.get(session.id)
-    end
+    AuthSessionCache.set(session.id, session)
   end
 
   defp get_session(session_id) do
