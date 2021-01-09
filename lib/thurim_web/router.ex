@@ -47,6 +47,14 @@ defmodule ThurimWeb.Router do
         post "/logout/all", UserController, :logout_all
       end
     end
+
+    scope "/client", Client do
+      scope "/r0", R0 do
+        pipe_through [:interactive_auth, :access_token]
+
+        post "/account/password", UserController, :password
+      end
+    end
   end
 
   # Enables LiveDashboard only for development

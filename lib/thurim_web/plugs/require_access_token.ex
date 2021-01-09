@@ -6,11 +6,12 @@ defmodule ThurimWeb.Plugs.RequireAccessToken do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    with {:ok, token} <- Map.fetch(conn.assigns, :access_token),
+    with {:ok, token} <- Map.fetch(conn.assigns, :signed_access_token),
          {:ok, access_token} when not is_nil(access_token) <- AccessTokens.verify(token) do
       conn
       |> Conn.assign(:current_account, access_token.account)
       |> Conn.assign(:current_device, access_token.device)
+      |> Conn.assign(:access_token, access_token)
     else
       :error ->
         conn |> json_error(:m_missing_token) |> Conn.halt()

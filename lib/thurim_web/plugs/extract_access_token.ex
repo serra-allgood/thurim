@@ -18,12 +18,12 @@ defmodule ThurimWeb.Plugs.ExtractAccessToken do
       {nil, nil} -> conn
       {token, nil} ->
         #Token fetched from query params, assign value to connection
-        Conn.assign(conn, :access_token, token)
+        Conn.assign(conn, :signed_access_token, token)
 
       {nil, token} ->
         #authorization header found. Look for token in authorization value and assign it to connection
         case Regex.named_captures(~r/Bearer\ (?<token>.+)/, token) do
-          %{"token" => token} -> Conn.assign(conn, :access_token, token)
+          %{"token" => token} -> Conn.assign(conn, :signed_access_token, token)
           _ -> conn
         end
     end

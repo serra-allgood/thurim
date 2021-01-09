@@ -41,8 +41,63 @@ defmodule ThurimWeb.UserControllerTest do
     conn
     |> put_req_header("content-type", "application/json")
     |> put_req_header("user-agent", "TEST")
-    |> post(Routes.user_path(conn, :login, request))
+    |> post(Routes.user_path(conn, :login), request)
     |> json_response(200)
+  end
+
+  describe "account/password" do
+    test "succeeds when authenticated, not logging out if told not to", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+      %{"access_token" => access_token} = login_user(conn, username, password)
+
+      assert Devices.list_devices(username) |> length() == 2
+
+      request = %{
+        "new_password" => "new_password",
+        "auth" => %{
+          "session" => get_auth_session(conn),
+          "type" => "m.login.dummy"
+        },
+        "logout_devices" => false
+      }
+
+      conn
+      |> add_basic_headers()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> post(Routes.user_path(conn, :password), request)
+      |> json_response(200)
+
+      assert Devices.list_devices(username) |> length() == 2
+      assert AccessTokens.list_access_tokens(username) |> length() == 2
+    end
+
+    test "succeeds when authenticated, logging out of all other devices", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+      %{"access_token" => access_token} = login_user(conn, username, password)
+
+      assert Devices.list_devices(username) |> length() == 2
+
+      request = %{
+        "new_password" => "new_password",
+        "auth" => %{
+          "session" => get_auth_session(conn),
+          "type" => "m.login.dummy"
+        }
+      }
+
+      conn
+      |> add_basic_headers()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> post(Routes.user_path(conn, :password), request)
+      |> json_response(200)
+
+      assert Devices.list_devices(username) |> length() == 1
+      assert AccessTokens.list_access_tokens(username) |> length() == 1
+    end
   end
 
   describe "logout/all" do
@@ -104,7 +159,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(403)
 
       assert %{"errcode" => "M_FORBIDDEN"} = response
@@ -128,7 +183,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(403)
 
       assert %{"errcode" => "M_FORBIDDEN"} = response
@@ -152,7 +207,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(400)
 
       assert %{"error" => "Bad login type"} = response
@@ -176,7 +231,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(400)
 
       assert %{"error" => "Bad login type"} = response
@@ -201,7 +256,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(200)
 
       assert %{
@@ -233,7 +288,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :login, request))
+        |> post(Routes.user_path(conn, :login), request)
         |> json_response(200)
 
       assert %{
@@ -331,7 +386,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :create, request))
+        |> post(Routes.user_path(conn, :create), request)
         |> json_response(200)
 
       assert %{"access_token" => access_token, "user_id" => user_id, "device_id" => device_id} =
@@ -354,7 +409,7 @@ defmodule ThurimWeb.UserControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
-        |> post(Routes.user_path(conn, :create, request))
+        |> post(Routes.user_path(conn, :create), request)
         |> json_response(200)
 
       assert %{"access_token" => access_token, "user_id" => user_id, "device_id" => device_id} =

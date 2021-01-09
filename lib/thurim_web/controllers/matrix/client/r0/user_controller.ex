@@ -61,8 +61,8 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   end
 
   def logout(conn, _params) do
-    {:ok, access_token} = Map.get(conn.assigns, :access_token) |> AccessTokens.verify()
-    AccessTokens.delete_access_token(access_token)
+    Map.get(conn.assigns, :access_token)
+    |> AccessTokens.delete_access_token()
 
     Map.get(conn.assigns, :current_device)
     |> Devices.delete_device()
@@ -75,6 +75,30 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
     AccessTokens.delete_access_tokens(account.access_tokens)
     Devices.delete_devices(account.devices)
+
+    json(conn, %{})
+  end
+
+  def password(conn, %{"new_password" => new_password} = params) do
+    account = Map.get(conn.assigns, :current_account) |> User.preload_account()
+    logout_devices = Map.get(params, "logout_devices", true)
+
+    account |> User.update_account(%{"password" => new_password})
+
+    if logout_devices do
+      access_token = Map.get(conn.assigns, :access_token)
+      device = Map.get(conn.assigns, :current_device)
+
+      other_access_tokens =
+        account.access_tokens
+        |> Enum.filter(&(&1.id != access_token.id))
+      other_devices =
+        account.devices
+        |> Enum.filter(&(&1.session_id != device.session_id))
+
+      AccessTokens.delete_access_tokens(other_access_tokens)
+      Devices.delete_devices(other_devices)
+    end
 
     json(conn, %{})
   end
