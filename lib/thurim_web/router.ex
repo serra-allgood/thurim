@@ -46,6 +46,7 @@ defmodule ThurimWeb.Router do
 
         post "/logout", UserController, :logout
         post "/logout/all", UserController, :logout_all
+        get "/account/whoami", UserController, :whoami
       end
     end
 

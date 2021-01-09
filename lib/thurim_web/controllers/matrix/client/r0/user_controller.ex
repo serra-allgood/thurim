@@ -15,6 +15,12 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     render(conn, "index.json", flows: @flows)
   end
 
+  def whoami(conn, _params) do
+    account = Map.get(conn.assigns, :current_account)
+
+    json(conn, %{"user_id" => User.mx_user_id(account.localpart)})
+  end
+
   def available(conn, %{"username" => username}) do
     json(conn, %{"available" => User.localpart_available?(username)})
   end

@@ -45,6 +45,21 @@ defmodule ThurimWeb.UserControllerTest do
     |> json_response(200)
   end
 
+  describe "account/whoami" do
+    test "returns the user_id associated with the access token", %{conn: conn} do
+      %{"access_token" => access_token} = create_user(conn, "jump_spider", "password")
+
+      response =
+        conn
+        |> add_basic_headers()
+        |> put_req_header("authorization", "Bearer #{access_token}")
+        |> get(Routes.user_path(conn, :whoami))
+        |> json_response(200)
+
+      assert %{"user_id" => "@jump_spider:localhost"} = response
+    end
+  end
+
   describe "register/available" do
     test "returns false when the username is not available", %{conn: conn} do
       username = "jump_spider"
