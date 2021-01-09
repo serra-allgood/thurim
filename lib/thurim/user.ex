@@ -12,8 +12,10 @@ defmodule Thurim.User do
   alias Thurim.AccountData
   alias Thurim.AccessTokens
 
+  @domain Application.get_env(:thurim, :matrix)[:domain]
+
   def mx_user_id(localpart) do
-    "@" <> localpart <> ":" <> ThurimWeb.Endpoint.config(:domain)
+    "@" <> localpart <> ":" <> @domain
   end
 
   def generate_localpart() do
@@ -22,14 +24,11 @@ defmodule Thurim.User do
 
   def authenticate(localpart, password) do
     with account when not is_nil(account) <- get_account(localpart),
-         password_hash when not is_nil(password_hash) <- account.password_hash do
-      if Bcrypt.verify_pass(password, password_hash) do
-        {:ok, account}
-      else
-        {:error, :invalid_login}
-      end
+         password_hash when not is_nil(password_hash) <- account.password_hash,
+         true <- Bcrypt.verify_pass(password, password_hash) do
+      {:ok, account}
     else
-      _ -> {:error, :not_found}
+      _ -> {:error, :invalid_login}
     end
   end
 
@@ -39,7 +38,8 @@ defmodule Thurim.User do
          {:ok, device} <- Devices.create_device(params),
          {:ok, _} <- Profiles.create_profile(%{"localpart" => account.localpart}),
          {:ok, _} <- AccountData.create_push_rules(%{"localpart" => account.localpart}),
-         {:ok, signed_access_token} <- AccessTokens.sign(device.session_id, account.localpart) do
+         {:ok, signed_access_token} <-
+           AccessTokens.create_and_sign(device.session_id, account.localpart) do
       {:ok, account, device, signed_access_token}
     end
   end

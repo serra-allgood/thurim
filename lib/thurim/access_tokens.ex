@@ -12,11 +12,24 @@ defmodule Thurim.AccessTokens do
 
   @cache_ttl 60 * 60
 
-  def sign(device_session_id, localpart) do
+  def get_signed_token(access_token_id) do
+    case AccessTokenCache.get(access_token_id) || Repo.get(AccessToken, access_token_id) do
+      nil -> nil
+      access_token ->
+        AccessTokenCache.set(access_token.id, Repo.preload(access_token, [:device, :account]), ttl: @cache_ttl)
+        sign(access_token)
+    end
+  end
+
+  def sign(access_token) do
+    Token.sign(ThurimWeb.Endpoint, "access token", access_token.id)
+  end
+
+  def create_and_sign(device_session_id, localpart) do
     with {:ok, access_token} <-
            create_access_token(%{device_session_id: device_session_id, localpart: localpart}),
          access_token <- Repo.preload(access_token, [:device, :account]),
-         signed_access_token <- Token.sign(ThurimWeb.Endpoint, "access token", access_token.id) do
+         signed_access_token <- sign(access_token) do
       AccessTokenCache.set(access_token.id, access_token, ttl: @cache_ttl)
       {:ok, signed_access_token}
     end

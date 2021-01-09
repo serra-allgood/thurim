@@ -6,8 +6,8 @@ defmodule Thurim.UserTest do
   describe "accounts" do
     alias Thurim.User.Account
 
-    @valid_attrs %{is_deactivated: false, localpart: "some localpart", password: "some password"}
-    @update_attrs %{is_deactivated: true, localpart: "some updated localpart", password: "some updated password"}
+    @valid_attrs %{is_deactivated: false, localpart: "some_localpart", password: "some password"}
+    @update_attrs %{is_deactivated: true, localpart: "some_updated_localpart", password: "some updated password"}
     @invalid_attrs %{is_deactivated: nil, localpart: nil, password: nil}
 
     def account_fixture(attrs \\ %{}) do
@@ -36,7 +36,7 @@ defmodule Thurim.UserTest do
     test "create_account/1 with valid data creates a account" do
       assert {:ok, %Account{} = account} = User.create_account(@valid_attrs)
       assert account.is_deactivated == false
-      assert account.localpart == "some localpart"
+      assert account.localpart == "some_localpart"
       assert Bcrypt.verify_pass("some password", account.password_hash)
     end
 
@@ -48,7 +48,7 @@ defmodule Thurim.UserTest do
       account = account_without_password()
       assert {:ok, %Account{} = account} = User.update_account(account, @update_attrs)
       assert account.is_deactivated == true
-      assert account.localpart == "some updated localpart"
+      assert account.localpart == "some_updated_localpart"
       assert Bcrypt.verify_pass("some updated password", account.password_hash)
     end
 

@@ -4,11 +4,13 @@ defmodule Thurim.User.Account do
   alias Thurim.AccessTokens.AccessToken
   import Ecto.Changeset
 
+  @localpart_regex ~r|^[a-z0-9\-\.\=\_\/]+$|
+
   @primary_key {:localpart, :string, autogenerate: false}
   @foreign_key_type :string
   schema "accounts" do
     field :is_deactivated, :boolean, default: false
-    field :password, :string, virtual: true
+    field :password, :string, virtual: true, redacted: true
     field :password_hash, :string, redacted: true
 
     timestamps()
@@ -22,6 +24,8 @@ defmodule Thurim.User.Account do
     account
     |> cast(attrs, [:localpart, :password, :is_deactivated])
     |> validate_required([:localpart, :is_deactivated])
+    |> validate_format(:localpart, @localpart_regex, message: "invalid_user_id")
+    |> validate_length(:localpart, max: 255)
     |> unique_constraint(:localpart, name: :accounts_pkey, message: "user_in_use")
     |> hash_password()
   end

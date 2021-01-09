@@ -2,14 +2,32 @@ defmodule Thurim.Devices do
   import Ecto.Query, warn: false
   alias Thurim.Repo
   alias Thurim.Devices.Device
+  alias Thurim.AccessTokens
 
-  def generate_device_id(ua) do
-    "#{ua}/#{ua.os}" |> Base.url_encode64(padding: false, ignore: :whitespace)
+  @device_id_length 6
+
+  def generate_device_id() do
+    :crypto.strong_rand_bytes(@device_id_length)
+    |> Base.url_encode64(padding: false, ignore: :whitespace)
+    |> binary_part(0, @device_id_length)
   end
 
-  def get_by_access_token(access_token) do
-    from(d in Device, where: d.access_token == ^access_token)
-    |> Repo.one()
+  def get_by_device_id(device_id) do
+    case from(d in Device, where: d.device_id == ^device_id) |> Repo.one() do
+      nil -> nil
+      device -> device |> Repo.preload(:access_token)
+    end
+  end
+
+  def create_device_and_access_token(attrs) do
+    with {:ok, device} <- create_device(attrs),
+         {:ok, _} <-
+           AccessTokens.create_access_token(%{
+             device_session_id: device.session_id,
+             localpart: attrs.localpart
+           }) do
+      device |> Repo.preload(:access_token)
+    end
   end
 
   @doc """

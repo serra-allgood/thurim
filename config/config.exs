@@ -7,6 +7,15 @@
 # General application configuration
 use Mix.Config
 
+config :thurim, :matrix,
+  auth_flows: [
+    %{stages: ["m.login.dummy"]},
+    %{stages: ["m.login.password"]}
+  ],
+  domain: "localhost",
+  homeserver_url: "https://localhost:4001",
+  identity_server_url: "https://matrix.org"
+
 config :thurim, ThurimWeb.AuthSessionCache,
   gc_interval: 60 * 60 * 10 # 10 minutes
 

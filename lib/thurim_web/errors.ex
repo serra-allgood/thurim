@@ -78,7 +78,7 @@ defmodule ThurimWeb.Errors do
   defp message(:m_missing_token), do: "Access token missing"
   defp message(:m_unknown_token), do: "Unknown access token"
   defp message(:m_not_found), do: "Not found"
-  defp message(:p_internal_error), do: "Plasma internal error"
+  defp message(:p_internal_error), do: "Thurim internal error"
   defp message(:p_not_implemented), do: "API endpoint not yet implemented"
   defp message(_), do: "Unknown Error"
 end

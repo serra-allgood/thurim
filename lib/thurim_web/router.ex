@@ -22,6 +22,7 @@ defmodule ThurimWeb.Router do
     scope "/client", Client do
       scope "/r0", R0 do
         get "/login", UserController, :index
+        post "/login", UserController, :login
       end
     end
 

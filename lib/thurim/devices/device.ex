@@ -5,7 +5,6 @@ defmodule Thurim.Devices.Device do
   import Ecto.Changeset
 
   @primary_key {:session_id, :binary_id, autogenerate: true}
-  @foreign_key_type :binary_id
   schema "devices" do
     field :device_id, :string
     field :display_name, :string

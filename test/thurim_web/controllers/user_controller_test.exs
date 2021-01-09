@@ -9,8 +9,209 @@ defmodule ThurimWeb.UserControllerTest do
 
   setup :clear_cache
 
+  def create_user(conn, username, password) do
+    request = %{
+      "auth" => %{
+        "session" => get_auth_session(conn),
+        "type" => "m.login.dummy"
+      },
+      "username" => username,
+      "password" => password
+    }
+
+    conn
+    |> put_req_header("content-type", "application/json")
+    |> put_req_header("user-agent", "TEST")
+    |> post(Routes.user_path(conn, :create), request)
+    |> json_response(200)
+  end
+
+  describe "login" do
+    test "fails when user account is not found", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.password",
+        "identifier" => %{
+          "user" => "wrong_user",
+          "type" => "m.id.user"
+        },
+        "password" => password
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(403)
+
+      assert %{"errcode" => "M_FORBIDDEN"} = response
+    end
+
+    test "fails when credentials are invalid", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.password",
+        "identifier" => %{
+          "user" => username,
+          "type" => "m.id.user"
+        },
+        "password" => "wrong password"
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(403)
+
+      assert %{"errcode" => "M_FORBIDDEN"} = response
+    end
+
+    test "fails when using an unsupported identifier type", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.password",
+        "identifier" => %{
+          "user" => username,
+          "type" => "m.id.unsupported"
+        },
+        "password" => password
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(400)
+
+      assert %{"error" => "Bad login type"} = response
+    end
+
+    test "fails when using an unsupported login type", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.unsupported",
+        "identifier" => %{
+          "user" => username,
+          "type" => "m.id.user"
+        },
+        "password" => password
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(400)
+
+      assert %{"error" => "Bad login type"} = response
+    end
+
+    test "succeeds when user authenticates with provided device_id", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      %{"device_id" => original_device_id} = create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.password",
+        "identifier" => %{
+          "type" => "m.id.user",
+          "user" => username
+        },
+        "password" => password,
+        "device_id" => original_device_id
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(200)
+
+      assert %{
+               "device_id" => device_id,
+               "access_token" => access_token,
+               "well_known" => well_known,
+               "user_id" => user_id
+             } = response
+
+      assert user_id == "@jump_spider:localhost"
+      assert device_id == original_device_id
+    end
+
+    test "succeeds when user authenticates", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{
+        "type" => "m.login.password",
+        "identifier" => %{
+          "type" => "m.id.user",
+          "user" => username
+        },
+        "password" => password
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :login, request))
+        |> json_response(200)
+
+      assert %{
+               "device_id" => device_id,
+               "access_token" => access_token,
+               "well_known" => well_known,
+               "user_id" => user_id
+             } = response
+
+      assert user_id == "@jump_spider:localhost"
+    end
+  end
+
   describe "registration" do
-    test "register/2 fails when username already exits", %{conn: conn} do
+    test "fails when username is invalid", %{conn: conn} do
+      # Create first user
+      request = %{
+        "auth" => %{
+          "session" => get_auth_session(conn),
+          "type" => "m.login.dummy"
+        },
+        "username" => "@jump_spider",
+        "password" => "password"
+      }
+
+      response =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+        |> post(Routes.user_path(conn, :create), request)
+        |> json_response(400)
+
+      assert %{"errcode" => errcode, "error" => message} = response
+      assert errcode == "M_INVALID_USERNAME"
+    end
+
+    test "fails when username already exits", %{conn: conn} do
       username = "jump_spider"
       # Create first user
       request = %{
