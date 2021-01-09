@@ -10,6 +10,11 @@ defmodule ThurimWeb.Router do
     plug ThurimWeb.Plugs.InteractiveAuth
   end
 
+  pipeline :access_token do
+    plug ThurimWeb.Plugs.ExtractAccessToken
+    plug ThurimWeb.Plugs.RequireAccessToken
+  end
+
   scope "/_matrix/client", ThurimWeb.Matrix do
     pipe_through :api
 
@@ -31,6 +36,14 @@ defmodule ThurimWeb.Router do
         pipe_through :interactive_auth
 
         post "/register", UserController, :create
+      end
+    end
+
+    scope "/client", Client do
+      scope "/r0", R0 do
+        pipe_through :access_token
+
+        post "/logout", UserController, :logout
       end
     end
   end

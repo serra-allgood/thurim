@@ -1,5 +1,7 @@
 defmodule ThurimWeb.UserControllerTest do
   use ThurimWeb.ConnCase
+  alias Thurim.Devices
+  alias Thurim.AccessTokens
 
   def clear_cache(_context) do
     ThurimWeb.AuthSessionCache.flush()
@@ -24,6 +26,26 @@ defmodule ThurimWeb.UserControllerTest do
     |> put_req_header("user-agent", "TEST")
     |> post(Routes.user_path(conn, :create), request)
     |> json_response(200)
+  end
+
+  describe "logout" do
+    test "deletes the current device and access token", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+
+      %{"access_token" => access_token, "device_id" => device_id} =
+        create_user(conn, username, password)
+
+      conn
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("user-agent", "TEST")
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> post(Routes.user_path(conn, :logout))
+      |> json_response(200)
+
+      refute Devices.get_by_device_id(device_id)
+      assert {:error, :unknown_token} = AccessTokens.verify(access_token)
+    end
   end
 
   describe "login" do

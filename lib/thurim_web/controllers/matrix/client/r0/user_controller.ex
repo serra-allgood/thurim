@@ -60,6 +60,16 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     end
   end
 
+  def logout(conn, _params) do
+    {:ok, access_token} = Map.get(conn.assigns, :access_token) |> AccessTokens.verify()
+    AccessTokens.delete_access_token(access_token)
+
+    Map.get(conn.assigns, :current_device)
+    |> Devices.delete_device()
+
+    json(conn, %{})
+  end
+
   def create(conn, params) do
     display_name = Map.get(params, "initial_display_name", Utils.get_ua_repr(conn))
     device_id = Map.get(params, "device_id", Devices.generate_device_id())

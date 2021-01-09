@@ -14,9 +14,14 @@ defmodule Thurim.AccessTokens do
 
   def get_signed_token(access_token_id) do
     case AccessTokenCache.get(access_token_id) || Repo.get(AccessToken, access_token_id) do
-      nil -> nil
+      nil ->
+        nil
+
       access_token ->
-        AccessTokenCache.set(access_token.id, Repo.preload(access_token, [:device, :account]), ttl: @cache_ttl)
+        AccessTokenCache.set(access_token.id, Repo.preload(access_token, [:device, :account]),
+          ttl: @cache_ttl
+        )
+
         sign(access_token)
     end
   end
@@ -36,15 +41,14 @@ defmodule Thurim.AccessTokens do
   end
 
   def verify(signed_access_token) do
-    case Token.verify(ThurimWeb.Endpoint, "access token", signed_access_token) do
-      {:ok, access_token_id} ->
-        access_token =
-          AccessTokenCache.get(access_token_id) || get_access_token_with_preloads(access_token_id)
-
-        {:ok, access_token}
-
-      {:error, _} ->
-        :error
+    with {:ok, access_token_id} <-
+           Token.verify(ThurimWeb.Endpoint, "access token", signed_access_token),
+         access_token when not is_nil(access_token) <-
+           AccessTokenCache.get(access_token_id) ||
+             get_access_token_with_preloads(access_token_id) do
+      {:ok, access_token}
+    else
+      _ -> {:error, :unknown_token}
     end
   end
 
@@ -136,6 +140,7 @@ defmodule Thurim.AccessTokens do
 
   """
   def delete_access_token(%AccessToken{} = access_token) do
+    AccessTokenCache.delete(access_token.id)
     Repo.delete(access_token)
   end
 
