@@ -14,6 +14,10 @@ defmodule Thurim.User do
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
+  def localpart_available?(localpart) do
+    get_account(localpart) == nil
+  end
+
   def mx_user_id(localpart) do
     "@" <> localpart <> ":" <> @domain
   end

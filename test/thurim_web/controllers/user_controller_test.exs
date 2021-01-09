@@ -45,6 +45,34 @@ defmodule ThurimWeb.UserControllerTest do
     |> json_response(200)
   end
 
+  describe "register/available" do
+    test "returns false when the username is not available", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+
+      request = %{"username" => username}
+      response =
+        conn
+        |> add_basic_headers()
+        |> get(Routes.user_path(conn, :available, request))
+        |> json_response(200)
+
+      assert %{"available" => false} = response
+    end
+
+    test "returns true when the username is available", %{conn: conn} do
+      request = %{"username" => "jump_spider"}
+      response =
+        conn
+        |> add_basic_headers()
+        |> get(Routes.user_path(conn, :available, request))
+        |> json_response(200)
+
+      assert %{"available" => true} = response
+    end
+  end
+
   describe "account/password" do
     test "succeeds when authenticated, not logging out if told not to", %{conn: conn} do
       username = "jump_spider"

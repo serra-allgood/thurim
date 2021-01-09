@@ -15,6 +15,10 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     render(conn, "index.json", flows: @flows)
   end
 
+  def available(conn, %{"username" => username}) do
+    json(conn, %{"available" => User.localpart_available?(username)})
+  end
+
   def login(conn, params) do
     with %{"type" => login_type} when login_type == "m.login.password" <- params,
          %{"type" => identifier_type, "user" => localpart} when identifier_type == "m.id.user" <- params["identifier"],

@@ -28,6 +28,7 @@ defmodule ThurimWeb.Router do
       scope "/r0", R0 do
         get "/login", UserController, :index
         post "/login", UserController, :login
+        get "/register/available", UserController, :available
       end
     end
 
