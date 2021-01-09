@@ -39,6 +39,12 @@ defmodule ThurimWeb.ConnCase do
 
         session
       end
+
+      def add_basic_headers(conn) do
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("user-agent", "TEST")
+      end
     end
   end
 

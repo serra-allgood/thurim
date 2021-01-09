@@ -21,10 +21,10 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
          %{"password" => password} <- params,
          {:ok, account} <- User.authenticate(localpart, password) do
       device_display_name = Map.get(params, "initial_display_name", Utils.get_ua_repr(conn))
-      device_id = Map.get(params, "device_id", Devices.generate_device_id())
+      device_id = Map.get(params, "device_id", Devices.generate_device_id(account.localpart))
 
       device =
-        case Devices.get_by_device_id(device_id) do
+        case Devices.get_by_device_id(device_id, account.localpart) do
           nil ->
             Devices.create_device_and_access_token(%{
               device_id: device_id,
@@ -70,10 +70,19 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     json(conn, %{})
   end
 
+  def logout_all(conn, _params) do
+    account = Map.get(conn.assigns, :current_account) |> User.preload_account()
+
+    AccessTokens.delete_access_tokens(account.access_tokens)
+    Devices.delete_devices(account.devices)
+
+    json(conn, %{})
+  end
+
   def create(conn, params) do
     display_name = Map.get(params, "initial_display_name", Utils.get_ua_repr(conn))
-    device_id = Map.get(params, "device_id", Devices.generate_device_id())
     localpart = Map.get(params, "username", User.generate_localpart())
+    device_id = Map.get(params, "device_id", Devices.generate_device_id(localpart))
     inhibit_login = Map.get(params, "inhibit_login", false)
 
     register_params =

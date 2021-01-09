@@ -28,6 +28,43 @@ defmodule ThurimWeb.UserControllerTest do
     |> json_response(200)
   end
 
+  def login_user(conn, username, password) do
+    request = %{
+      "type" => "m.login.password",
+      "identifier" => %{
+        "type" => "m.id.user",
+        "user" => username
+      },
+      "password" => password
+    }
+
+    conn
+    |> put_req_header("content-type", "application/json")
+    |> put_req_header("user-agent", "TEST")
+    |> post(Routes.user_path(conn, :login, request))
+    |> json_response(200)
+  end
+
+  describe "logout/all" do
+    test "deletes all devices and access tokens for the account", %{conn: conn} do
+      username = "jump_spider"
+      password = "password"
+      create_user(conn, username, password)
+      %{"access_token" => access_token} = login_user(conn, username, password)
+
+      assert Devices.list_devices(username) |> length() == 2
+
+      conn
+      |> add_basic_headers()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> post(Routes.user_path(conn, :logout_all))
+      |> json_response(200)
+
+      assert Devices.list_devices(username) |> length() == 0
+      assert AccessTokens.list_access_tokens(username) |> length() == 0
+    end
+  end
+
   describe "logout" do
     test "deletes the current device and access token", %{conn: conn} do
       username = "jump_spider"
@@ -43,7 +80,7 @@ defmodule ThurimWeb.UserControllerTest do
       |> post(Routes.user_path(conn, :logout))
       |> json_response(200)
 
-      refute Devices.get_by_device_id(device_id)
+      refute Devices.get_by_device_id(device_id, username)
       assert {:error, :unknown_token} = AccessTokens.verify(access_token)
     end
   end

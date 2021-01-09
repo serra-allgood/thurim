@@ -6,14 +6,22 @@ defmodule Thurim.Devices do
 
   @device_id_length 6
 
-  def generate_device_id() do
-    :crypto.strong_rand_bytes(@device_id_length)
-    |> Base.url_encode64(padding: false, ignore: :whitespace)
-    |> binary_part(0, @device_id_length)
+  def generate_device_id(localpart) do
+    device_id =
+      :crypto.strong_rand_bytes(@device_id_length)
+      |> Base.url_encode64(padding: false, ignore: :whitespace)
+      |> binary_part(0, @device_id_length)
+
+    if get_by_device_id(device_id, localpart) != nil do
+      generate_device_id(localpart)
+    else
+      device_id
+    end
   end
 
-  def get_by_device_id(device_id) do
-    case from(d in Device, where: d.device_id == ^device_id) |> Repo.one() do
+  def get_by_device_id(device_id, localpart) do
+    case from(d in Device, where: d.device_id == ^device_id and d.localpart == ^localpart)
+         |> Repo.one() do
       nil -> nil
       device -> device |> Repo.preload(:access_token)
     end
@@ -39,8 +47,9 @@ defmodule Thurim.Devices do
       [%Device{}, ...]
 
   """
-  def list_devices do
-    Repo.all(Device)
+  def list_devices(localpart) do
+    from(d in Device, where: d.localpart == ^localpart)
+    |> Repo.all()
   end
 
   @doc """
@@ -109,6 +118,12 @@ defmodule Thurim.Devices do
   """
   def delete_device(%Device{} = device) do
     Repo.delete(device)
+  end
+
+  def delete_devices(devices) do
+    ids = devices |> Enum.map(&(&1.session_id))
+    from(d in Device, where: d.session_id in ^ids)
+    |> Repo.delete_all()
   end
 
   @doc """

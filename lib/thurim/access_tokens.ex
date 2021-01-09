@@ -61,8 +61,9 @@ defmodule Thurim.AccessTokens do
       [%AccessToken{}, ...]
 
   """
-  def list_access_tokens do
-    Repo.all(AccessToken)
+  def list_access_tokens(localpart) do
+    from(a in AccessToken, where: a.localpart == ^localpart)
+    |> Repo.all()
   end
 
   @doc """
@@ -142,6 +143,14 @@ defmodule Thurim.AccessTokens do
   def delete_access_token(%AccessToken{} = access_token) do
     AccessTokenCache.delete(access_token.id)
     Repo.delete(access_token)
+  end
+
+  def delete_access_tokens(access_tokens) do
+    ids = access_tokens |> Enum.map(&(&1.id))
+    ids |> Enum.each(&AccessTokenCache.delete/1)
+
+    from(a in AccessToken, where: a.id in ^ids)
+    |> Repo.delete_all()
   end
 
   @doc """

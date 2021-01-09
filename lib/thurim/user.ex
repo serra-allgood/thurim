@@ -44,6 +44,10 @@ defmodule Thurim.User do
     end
   end
 
+  def preload_account(account) do
+    account |> Repo.preload([:devices, :access_tokens])
+  end
+
   @doc """
   Returns the list of accounts.
 

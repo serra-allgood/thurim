@@ -44,6 +44,7 @@ defmodule ThurimWeb.Router do
         pipe_through :access_token
 
         post "/logout", UserController, :logout
+        post "/logout/all", UserController, :logout_all
       end
     end
   end
