@@ -101,4 +101,100 @@ defmodule Thurim.Rooms do
   def change_room(%Room{} = room, attrs \\ %{}) do
     Room.changeset(room, attrs)
   end
+
+  alias Thurim.Rooms.RoomAlias
+
+  @doc """
+  Returns the list of room_aliases.
+
+  ## Examples
+
+      iex> list_room_aliases()
+      [%RoomAlias{}, ...]
+
+  """
+  def list_room_aliases do
+    Repo.all(RoomAlias)
+  end
+
+  @doc """
+  Gets a single room_alias.
+
+  Raises `Ecto.NoResultsError` if the Room alias does not exist.
+
+  ## Examples
+
+      iex> get_room_alias!(123)
+      %RoomAlias{}
+
+      iex> get_room_alias!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_room_alias!(id), do: Repo.get!(RoomAlias, id)
+
+  @doc """
+  Creates a room_alias.
+
+  ## Examples
+
+      iex> create_room_alias(%{field: value})
+      {:ok, %RoomAlias{}}
+
+      iex> create_room_alias(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_room_alias(attrs \\ %{}) do
+    %RoomAlias{}
+    |> RoomAlias.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a room_alias.
+
+  ## Examples
+
+      iex> update_room_alias(room_alias, %{field: new_value})
+      {:ok, %RoomAlias{}}
+
+      iex> update_room_alias(room_alias, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_room_alias(%RoomAlias{} = room_alias, attrs) do
+    room_alias
+    |> RoomAlias.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a room_alias.
+
+  ## Examples
+
+      iex> delete_room_alias(room_alias)
+      {:ok, %RoomAlias{}}
+
+      iex> delete_room_alias(room_alias)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_room_alias(%RoomAlias{} = room_alias) do
+    Repo.delete(room_alias)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking room_alias changes.
+
+  ## Examples
+
+      iex> change_room_alias(room_alias)
+      %Ecto.Changeset{data: %RoomAlias{}}
+
+  """
+  def change_room_alias(%RoomAlias{} = room_alias, attrs \\ %{}) do
+    RoomAlias.changeset(room_alias, attrs)
+  end
 end
