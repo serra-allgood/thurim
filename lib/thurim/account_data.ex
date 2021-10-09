@@ -7,14 +7,12 @@ defmodule Thurim.AccountData do
   alias Thurim.Repo
 
   alias Thurim.AccountData.AccountDatum
+  alias Thurim.PushRules
 
-  @default_push_rules %{"global" => %{
-    "content" => [],
-    "override" => [],
-    "room" => [],
-    "sender" => [],
-    "underride" => []
-  }}
+  @spec get_push_rules(String.t(), String.t()) :: AccountData.t() | nil
+  def get_push_rules(localpart, room_id \\ "") do
+    Repo.get_by(AccountDatum, [localpart: localpart, room_id: room_id, type: "m.default_push_rules"])
+  end
 
   @doc """
   Returns the list of account_data.
@@ -64,7 +62,7 @@ defmodule Thurim.AccountData do
   end
 
   def create_push_rules(attrs \\ %{}) do
-    %AccountDatum{type: "m.default_push_rules", content: @default_push_rules}
+    %AccountDatum{type: "m.default_push_rules", content: PushRules.default_push_rules(attrs["localpart"])}
     |> AccountDatum.changeset(attrs)
     |> Repo.insert()
   end

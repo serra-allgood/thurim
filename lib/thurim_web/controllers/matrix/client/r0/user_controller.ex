@@ -5,6 +5,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   alias Thurim.Utils
   alias Thurim.Devices
   alias Thurim.AccessTokens
+  alias Thurim.AccountData
 
   @matrix_config Application.get_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flows]
@@ -142,5 +143,13 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
       {:error, _name, changeset, _changes} ->
         send_changeset_error_to_json(conn, changeset)
     end
+  end
+
+  def push_rules(conn, _params) do
+    account = Map.get(conn.assigns, :current_account)
+    account_data = AccountData.get_push_rules(account.localpart)
+    push_rules = account_data.content
+
+    json(conn, push_rules)
   end
 end

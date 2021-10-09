@@ -56,13 +56,6 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
 
       {:error, :invalid_login} ->
         conn
-
-      {:error, :not_found} ->
-        if conn.path_info() == ["register"] do
-          add_completed_stage(type, session)
-        else
-          conn
-        end
     end
   end
 
