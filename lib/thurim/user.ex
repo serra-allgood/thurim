@@ -4,6 +4,7 @@ defmodule Thurim.User do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias Thurim.Repo
 
   alias Thurim.User.Account
@@ -37,15 +38,14 @@ defmodule Thurim.User do
   end
 
   def register(params) do
-    with account <- Account.changeset(%Account{}, params),
-         {:ok, account} <- Repo.insert(account),
-         {:ok, device} <- Devices.create_device(params),
-         {:ok, _} <- Profiles.create_profile(%{"localpart" => account.localpart}),
-         {:ok, _} <- AccountData.create_push_rules(%{"localpart" => account.localpart}),
-         {:ok, signed_access_token} <-
-           AccessTokens.create_and_sign(device.session_id, account.localpart) do
-      {:ok, account, device, signed_access_token}
-    end
+    multi = Multi.new()
+    |> Multi.insert(:account, Account.changeset(%Account{}, params))
+    |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
+    |> Multi.run(:profile, fn _repo, %{account: account} -> Profiles.create_profile(%{"localpart" => account.localpart}) end)
+    |> Multi.run(:account_data, fn _repo, %{account: account} -> AccountData.create_push_rules(%{"localpart" => account.localpart}) end)
+    |> Multi.run(:signed_access_token, fn _repo, %{device: device, account: account} -> AccessTokens.create_and_sign(device.session_id, account.localpart) end)
+
+    Repo.transaction(multi)
   end
 
   def preload_account(account) do
