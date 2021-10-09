@@ -12,20 +12,29 @@ defmodule Thurim.Presence.PresenceAgent do
   @enforce_keys [:presence]
   defstruct [:presence, :status_msg, :last_active_ago]
 
-  def get_presence_agent(user_id) do
+  def start_presence_agent(user_id) do
     with {:error, {:already_started, pid}} <-
-           Agent.start_link(
-             fn ->
-               %{
-                 presence: "offline",
-                 last_active: DateTime.utc_now()
-               }
-             end,
-             name: via_tuple(user_id)
-           ) do
+      Agent.start_link(
+        fn ->
+          %{
+            presence: "offline",
+            last_active: DateTime.utc_now()
+          }
+        end,
+        name: via_tuple(user_id)
+      ) do
       {:ok, pid}
     else
       {:ok, _} = pid -> pid
+    end
+  end
+
+  def get_presence_agent(user_id) do
+    case Horde.Registry.lookup(Thurim.Registry, key(user_id)) do
+      [{pid, _} | _] ->
+        {:ok, pid}
+      _ ->
+        {:error, "not found"}
     end
   end
 
@@ -35,7 +44,7 @@ defmodule Thurim.Presence.PresenceAgent do
   @spec get(pid) :: t
   def get(pid) do
     Agent.get(pid, fn state ->
-      %{presence: state[:presence], status_msg: state[:status_msg], last_active_ago: Timex.diff(Timex.now(), state[:last_active], :milliseconds)}
+      %{presence: state[:presence], status_msg: state[:status_msg], last_active_ago: Timex.diff(Timex.now("UTC"), state[:last_active], :milliseconds)}
     end)
   end
 
@@ -49,6 +58,8 @@ defmodule Thurim.Presence.PresenceAgent do
     end)
   end
 
-  def via_tuple(user_id),
-    do: {:via, Horde.Registry, {Thurim.Registry, "#{__MODULE__}_#{user_id}"}}
+  defp via_tuple(user_id),
+    do: {:via, Horde.Registry, {Thurim.Registry, key(user_id)}}
+
+  defp key(user_id), do: "#{__MODULE__}_#{user_id}"
 end

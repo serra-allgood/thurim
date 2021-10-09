@@ -5,6 +5,13 @@ defmodule ThurimWeb.Matrix.Client.R0.PresenceController do
   alias Thurim.User
   alias Thurim.Presence
 
+  def show(conn, params) do
+    case Presence.get_user_presence(params["user_id"]) do
+      :error -> json_error(conn, :m_not_found)
+      presence -> json(conn, presence)
+    end
+  end
+
   def update(conn, params) do
     account = Map.get(conn.assigns, :current_account)
 

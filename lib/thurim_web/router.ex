@@ -49,6 +49,7 @@ defmodule ThurimWeb.Router do
         get "/account/whoami", UserController, :whoami
         get "/pushrules", UserController, :push_rules
 
+        get "/presence/:user_id/status", PresenceController, :show
         put "/presence/:user_id/status", PresenceController, :update
       end
     end
