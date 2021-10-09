@@ -1,66 +1,6 @@
 defmodule Thurim.EventsTest do
   use Thurim.DataCase
-
   alias Thurim.Events
-
-  describe "event_state_keys" do
-    alias Thurim.Events.EventStateKey
-
-    @valid_attrs %{event_state_key: "some event_state_key"}
-    @update_attrs %{event_state_key: "some updated event_state_key"}
-    @invalid_attrs %{event_state_key: nil}
-
-    def event_state_key_fixture(attrs \\ %{}) do
-      {:ok, event_state_key} =
-        attrs
-        |> Enum.into(@valid_attrs)
-        |> Events.create_event_state_key()
-
-      event_state_key
-    end
-
-    test "list_event_state_keys/0 returns all event_state_keys" do
-      event_state_key = event_state_key_fixture()
-      assert Events.list_event_state_keys() == [event_state_key]
-    end
-
-    test "get_event_state_key!/1 returns the event_state_key with given id" do
-      event_state_key = event_state_key_fixture()
-      assert Events.get_event_state_key!(event_state_key.id) == event_state_key
-    end
-
-    test "create_event_state_key/1 with valid data creates a event_state_key" do
-      assert {:ok, %EventStateKey{} = event_state_key} = Events.create_event_state_key(@valid_attrs)
-      assert event_state_key.event_state_key == "some event_state_key"
-    end
-
-    test "create_event_state_key/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Events.create_event_state_key(@invalid_attrs)
-    end
-
-    test "update_event_state_key/2 with valid data updates the event_state_key" do
-      event_state_key = event_state_key_fixture()
-      assert {:ok, %EventStateKey{} = event_state_key} = Events.update_event_state_key(event_state_key, @update_attrs)
-      assert event_state_key.event_state_key == "some updated event_state_key"
-    end
-
-    test "update_event_state_key/2 with invalid data returns error changeset" do
-      event_state_key = event_state_key_fixture()
-      assert {:error, %Ecto.Changeset{}} = Events.update_event_state_key(event_state_key, @invalid_attrs)
-      assert event_state_key == Events.get_event_state_key!(event_state_key.id)
-    end
-
-    test "delete_event_state_key/1 deletes the event_state_key" do
-      event_state_key = event_state_key_fixture()
-      assert {:ok, %EventStateKey{}} = Events.delete_event_state_key(event_state_key)
-      assert_raise Ecto.NoResultsError, fn -> Events.get_event_state_key!(event_state_key.id) end
-    end
-
-    test "change_event_state_key/1 returns a event_state_key changeset" do
-      event_state_key = event_state_key_fixture()
-      assert %Ecto.Changeset{} = Events.change_event_state_key(event_state_key)
-    end
-  end
 
   describe "state_snapshots" do
     alias Thurim.Events.StateSnapshot
@@ -187,65 +127,6 @@ defmodule Thurim.EventsTest do
     test "change_event/1 returns a event changeset" do
       event = event_fixture()
       assert %Ecto.Changeset{} = Events.change_event(event)
-    end
-  end
-
-  describe "event_json" do
-    alias Thurim.Events.EventJson
-
-    @valid_attrs %{event_json: %{}}
-    @update_attrs %{event_json: %{}}
-    @invalid_attrs %{event_json: nil}
-
-    def event_json_fixture(attrs \\ %{}) do
-      {:ok, event_json} =
-        attrs
-        |> Enum.into(@valid_attrs)
-        |> Events.create_event_json()
-
-      event_json
-    end
-
-    test "list_event_json/0 returns all event_json" do
-      event_json = event_json_fixture()
-      assert Events.list_event_json() == [event_json]
-    end
-
-    test "get_event_json!/1 returns the event_json with given id" do
-      event_json = event_json_fixture()
-      assert Events.get_event_json!(event_json.id) == event_json
-    end
-
-    test "create_event_json/1 with valid data creates a event_json" do
-      assert {:ok, %EventJson{} = event_json} = Events.create_event_json(@valid_attrs)
-      assert event_json.event_json == %{}
-    end
-
-    test "create_event_json/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Events.create_event_json(@invalid_attrs)
-    end
-
-    test "update_event_json/2 with valid data updates the event_json" do
-      event_json = event_json_fixture()
-      assert {:ok, %EventJson{} = event_json} = Events.update_event_json(event_json, @update_attrs)
-      assert event_json.event_json == %{}
-    end
-
-    test "update_event_json/2 with invalid data returns error changeset" do
-      event_json = event_json_fixture()
-      assert {:error, %Ecto.Changeset{}} = Events.update_event_json(event_json, @invalid_attrs)
-      assert event_json == Events.get_event_json!(event_json.id)
-    end
-
-    test "delete_event_json/1 deletes the event_json" do
-      event_json = event_json_fixture()
-      assert {:ok, %EventJson{}} = Events.delete_event_json(event_json)
-      assert_raise Ecto.NoResultsError, fn -> Events.get_event_json!(event_json.id) end
-    end
-
-    test "change_event_json/1 returns a event_json changeset" do
-      event_json = event_json_fixture()
-      assert %Ecto.Changeset{} = Events.change_event_json(event_json)
     end
   end
 end

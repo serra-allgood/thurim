@@ -5,8 +5,13 @@ defmodule Thurim.Rooms do
 
   import Ecto.Query, warn: false
   alias Thurim.Repo
-
   alias Thurim.Rooms.Room
+
+  @domain Application.get_env(:thurim, :matrix)[:domain]
+
+  def generate_room_id() do
+    "!" <> UUID.uuid4() <> ":" <> @domain
+  end
 
   @doc """
   Returns the list of rooms.

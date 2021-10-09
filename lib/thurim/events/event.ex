@@ -11,10 +11,11 @@ defmodule Thurim.Events.Event do
     field :is_rejected, :boolean, default: false
     field :reference_sha256, :binary
     field :sent_to_output, :boolean, default: false
-    field :event_type_id, :integer
-    field :event_state_key_id, :integer
+    field :type, :string
+    field :state_key, :string
+    field :content, :map
     field :state_snapshot_id, :integer, default: 0
-    belongs_to :room, Room
+    belongs_to :room, Room, references: :room_id, type: :string
 
     timestamps()
   end
@@ -29,9 +30,10 @@ defmodule Thurim.Events.Event do
       :reference_sha256,
       :auth_event_ids,
       :is_rejected,
-      :event_type_id,
-      :event_state_key_id,
-      :state_snapshot_id
+      :type,
+      :state_key,
+      :state_snapshot_id,
+      :content
     ])
     |> validate_required([
       :sent_to_output,
@@ -40,8 +42,8 @@ defmodule Thurim.Events.Event do
       :reference_sha256,
       :auth_event_ids,
       :is_rejected,
-      :event_type_id,
-      :event_state_key_id,
+      :type,
+      :content,
       :state_snapshot_id
     ])
     |> assoc_constraint(:room)

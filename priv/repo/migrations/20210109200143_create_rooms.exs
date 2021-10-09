@@ -8,6 +8,7 @@ defmodule Thurim.Repo.Migrations.CreateRooms do
       add :latest_event_nids, {:array, :integer}, null: false, default: []
       add :last_event_sent_nid, :integer, null: false, default: 0
       add :room_version, :text, null: false
+      add :published, :boolean, null: false, default: false
 
       timestamps()
     end

@@ -1,7 +1,7 @@
 defmodule Thurim.RoomsTest do
   use Thurim.DataCase
-
   alias Thurim.Rooms
+  alias Thurim.Events
 
   describe "rooms" do
     alias Thurim.Rooms.Room
@@ -17,6 +17,17 @@ defmodule Thurim.RoomsTest do
         |> Rooms.create_room()
 
       room
+    end
+
+    describe "room registration" do
+      test "registration with basic params" do
+        params = %{
+          "room_id" => Rooms.generate_room_id(),
+          "sender" => "@jump_spider:localhost",
+          "preset" => "public_chat"
+        }
+        assert {:ok, room} = Rooms.register(params)
+      end
     end
 
     test "list_rooms/0 returns all rooms" do

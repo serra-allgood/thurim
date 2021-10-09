@@ -14,7 +14,8 @@ config :thurim, :matrix,
   ],
   domain: "localhost",
   homeserver_url: "https://localhost:4001",
-  identity_server_url: "https://matrix.org"
+  identity_server_url: "https://matrix.org",
+  default_room_version: "5"
 
 config :thurim, ThurimWeb.AuthSessionCache,
   gc_interval: 60 * 60 * 10 # 10 minutes
