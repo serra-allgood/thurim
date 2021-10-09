@@ -32,8 +32,7 @@ defmodule ThurimWeb.ConnCase do
       def get_auth_session(conn) do
         %{"session" => session} =
           conn
-          |> put_req_header("content-type", "application/json")
-          |> put_req_header("user-agent", "TEST")
+          |> add_basic_headers()
           |> post(Routes.user_path(conn, :create))
           |> json_response(401)
 
@@ -44,6 +43,22 @@ defmodule ThurimWeb.ConnCase do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("user-agent", "TEST")
+      end
+
+      def create_user(conn, username, password) do
+        request = %{
+          "auth" => %{
+            "session" => get_auth_session(conn),
+            "type" => "m.login.dummy"
+          },
+          "username" => username,
+          "password" => password
+        }
+
+        conn
+        |> add_basic_headers()
+        |> post(Routes.user_path(conn, :create), request)
+        |> json_response(200)
       end
     end
   end

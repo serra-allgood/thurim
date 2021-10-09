@@ -2,6 +2,6 @@ defmodule ThurimWeb.Matrix.VersionsView do
   use ThurimWeb, :view
 
   def render("client.json", _assigns) do
-    %{versions: ["r.0.6.0"]}
+    %{versions: ["r.0.6.0", "r.0.6.1"]}
   end
 end

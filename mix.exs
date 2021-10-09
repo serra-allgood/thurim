@@ -49,6 +49,8 @@ defmodule Thurim.MixProject do
       {:nebulex, "~> 1.2.0"},
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
+      {:horde, "~> 0.7.0"},
+      {:timex, "~> 3.0"},
     ]
   end
 

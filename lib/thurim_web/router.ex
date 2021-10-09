@@ -48,6 +48,8 @@ defmodule ThurimWeb.Router do
         post "/logout/all", UserController, :logout_all
         get "/account/whoami", UserController, :whoami
         get "/pushrules", UserController, :push_rules
+
+        put "/presence/:user_id/status", PresenceController, :update
       end
     end
 

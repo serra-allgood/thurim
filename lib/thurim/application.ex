@@ -18,7 +18,9 @@ defmodule Thurim.Application do
       # Start a worker by calling: Thurim.Worker.start_link(arg)
       # {Thurim.Worker, arg}
       {Thurim.AccessTokens.AccessTokenCache, []},
-      {ThurimWeb.AuthSessionCache, []}
+      {ThurimWeb.AuthSessionCache, []},
+      {Horde.Registry, [name: Thurim.Registry, keys: :unique]},
+      {Horde.DynamicSupervisor, [name: Thurim.DistributedSupervisor, strategy: :one_for_one]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

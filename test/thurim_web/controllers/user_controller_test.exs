@@ -11,23 +11,6 @@ defmodule ThurimWeb.UserControllerTest do
 
   setup :clear_cache
 
-  def create_user(conn, username, password) do
-    request = %{
-      "auth" => %{
-        "session" => get_auth_session(conn),
-        "type" => "m.login.dummy"
-      },
-      "username" => username,
-      "password" => password
-    }
-
-    conn
-    |> put_req_header("content-type", "application/json")
-    |> put_req_header("user-agent", "TEST")
-    |> post(Routes.user_path(conn, :create), request)
-    |> json_response(200)
-  end
-
   def login_user(conn, username, password) do
     request = %{
       "type" => "m.login.password",
@@ -304,8 +287,8 @@ defmodule ThurimWeb.UserControllerTest do
 
       assert %{
                "device_id" => device_id,
-               "access_token" => access_token,
-               "well_known" => well_known,
+               "access_token" => _access_token,
+               "well_known" => _well_known,
                "user_id" => user_id
              } = response
 
@@ -335,9 +318,9 @@ defmodule ThurimWeb.UserControllerTest do
         |> json_response(200)
 
       assert %{
-               "device_id" => device_id,
-               "access_token" => access_token,
-               "well_known" => well_known,
+               "device_id" => _device_id,
+               "access_token" => _access_token,
+               "well_known" => _well_known,
                "user_id" => user_id
              } = response
 
@@ -364,7 +347,7 @@ defmodule ThurimWeb.UserControllerTest do
         |> post(Routes.user_path(conn, :create), request)
         |> json_response(400)
 
-      assert %{"errcode" => errcode, "error" => message} = response
+      assert %{"errcode" => errcode, "error" => _message} = response
       assert errcode == "M_INVALID_USERNAME"
     end
 
@@ -387,7 +370,7 @@ defmodule ThurimWeb.UserControllerTest do
         |> post(Routes.user_path(conn, :create), request)
         |> json_response(200)
 
-      assert %{"access_token" => access_token, "device_id" => device_id, "user_id" => user_id} =
+      assert %{"access_token" => _access_token, "device_id" => _device_id, "user_id" => user_id} =
                response
 
       assert user_id == "@#{username}:localhost"
@@ -409,8 +392,8 @@ defmodule ThurimWeb.UserControllerTest do
         |> post(Routes.user_path(conn, :create), request)
         |> json_response(400)
 
-      assert %{"errcode" => errcode, "error" => message} = response
-      assert errcode = "M_USER_IN_USE"
+      assert %{"errcode" => errcode, "error" => _message} = response
+      assert errcode == "M_USER_IN_USE"
     end
 
     test "with username and password provided", %{conn: conn} do
@@ -432,10 +415,10 @@ defmodule ThurimWeb.UserControllerTest do
         |> post(Routes.user_path(conn, :create), request)
         |> json_response(200)
 
-      assert %{"access_token" => access_token, "user_id" => user_id, "device_id" => device_id} =
+      assert %{"access_token" => _access_token, "user_id" => user_id, "device_id" => _device_id} =
                response
 
-      assert user_id = "@jump_spider:localhost"
+      assert user_id == "@jump_spider:localhost"
     end
 
     test "with auto generated values", %{conn: conn} do
@@ -455,7 +438,7 @@ defmodule ThurimWeb.UserControllerTest do
         |> post(Routes.user_path(conn, :create), request)
         |> json_response(200)
 
-      assert %{"access_token" => access_token, "user_id" => user_id, "device_id" => device_id} =
+      assert %{"access_token" => _access_token, "user_id" => _user_id, "device_id" => _device_id} =
                response
     end
   end
