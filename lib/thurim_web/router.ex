@@ -51,6 +51,8 @@ defmodule ThurimWeb.Router do
 
         get "/presence/:user_id/status", PresenceController, :show
         put "/presence/:user_id/status", PresenceController, :update
+
+        post "/user/:user_id/filter", FilterController, :create
       end
     end
 

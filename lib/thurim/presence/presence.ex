@@ -1,17 +1,16 @@
 defmodule Thurim.Presence do
   alias Thurim.Presence.PresenceAgent
 
-  @spec set_user_presence(String.t(), String.t(), String.t()) :: map
+  @spec set_user_presence(String.t(), String.t(), String.t() | nil) :: :ok
   def set_user_presence(user_id, presence, status_msg \\ nil) do
-    with {:ok, agent} <- PresenceAgent.start_presence_agent(user_id) do
-      state = %{
-        presence: presence,
-        status_msg: status_msg,
-        last_active: DateTime.utc_now()
-      }
+    agent = PresenceAgent.start_presence_agent(user_id)
+    state = %{
+      presence: presence,
+      status_msg: status_msg,
+      last_active: DateTime.utc_now()
+    }
 
-      PresenceAgent.put(agent, state)
-    end
+    PresenceAgent.put(agent, state)
   end
 
   def update_user_activity(user_id) do
