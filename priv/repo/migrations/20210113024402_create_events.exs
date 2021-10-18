@@ -14,13 +14,11 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
       add :type, :text, null: false
       add :state_key, :text
       add :content, :map, null: false
-      add :state_snapshot_id, references(:state_snapshots, on_delete: :nothing, type: :bigint), default: 0
 
       timestamps()
     end
 
     create index(:events, [:room_id])
-    create index(:events, [:state_snapshot_id])
     create unique_index(:events, [:event_id])
   end
 end

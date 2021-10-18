@@ -53,6 +53,8 @@ defmodule ThurimWeb.Router do
         put "/presence/:user_id/status", PresenceController, :update
 
         post "/user/:user_id/filter", FilterController, :create
+
+        get "/sync", SyncController, :index
       end
     end
 
