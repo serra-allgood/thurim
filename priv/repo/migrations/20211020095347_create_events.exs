@@ -12,7 +12,7 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
       add :is_rejected, :boolean, default: false, null: false
       add :room_id, references(:rooms, on_delete: :nothing, type: :text, column: :room_id), null: false
       add :type, :text, null: false
-      add :state_key, :text
+      add :state_key, references(:event_state_keys, on_delete: :nothing, type: :text, column: :state_key), null: false
       add :content, :map, null: false
 
       timestamps()

@@ -55,6 +55,8 @@ defmodule ThurimWeb.Router do
         post "/user/:user_id/filter", FilterController, :create
 
         get "/sync", SyncController, :index
+
+        post "/createRoom", RoomController, :create
       end
     end
 

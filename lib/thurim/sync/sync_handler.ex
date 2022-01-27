@@ -49,7 +49,10 @@ defmodule Thurim.Sync.SyncHandler do
       if !String.starts_with?(filter, "{") do
         Filters.get_by!(localpart: localpart, id: filter).filter
       else
-        Jason.decode(filter)
+        case Jason.decode(filter) do
+          {:ok, content} -> content
+          {:error, _} -> %{}
+        end
       end
 
     since = Map.get(params, "since") |> StreamingToken.new()
