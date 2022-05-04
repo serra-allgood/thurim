@@ -4,8 +4,10 @@ defmodule Thurim.Rooms do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias Thurim.Repo
   alias Thurim.Rooms.Room
+  alias Thurim.Events
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
@@ -55,9 +57,87 @@ defmodule Thurim.Rooms do
 
   """
   def create_room(attrs \\ %{}) do
-    %Room{}
-    |> Room.changeset(attrs)
-    |> Repo.insert()
+    attrs = Map.put(attrs, "room_id", generate_room_id())
+
+    multi =
+      Multi.new()
+      |> Multi.insert(:room, Room.changeset(%Room{}, attrs))
+      |> Multi.run(:create_room_event, fn _repo, _changes ->
+        Events.create_event(attrs, "m.room.create")
+      end)
+      |> Multi.run(:create_member_event, fn _repo, _changes ->
+        attrs
+        |> Map.put("event_state_key", Map.fetch!(attrs, "sender"))
+        |> Events.create_event("m.room.member", "join", 2)
+      end)
+      |> Multi.run(:create_power_levels, fn _repo, _changes ->
+        Events.create_event(attrs, "m.room.power_levels", 3)
+      end)
+
+    # TODO: Implement canonical room alias
+    # if Map.get(attrs, "room_alias_name", false) do
+    #   multi = multi |> Multi.run(:create_canonical_alias, fn _repo, _changes -> Events.create_event(attrs, "m.room.canonical_alias") end)
+    # end
+
+    multi =
+      case Map.get(attrs, "preset", false) do
+        "private_chat" ->
+          multi
+          |> Multi.run(:create_private_join_rule, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.join_rules", "invite", 4)
+          end)
+          |> Multi.run(:create_history_visibility, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+          end)
+          |> Multi.run(:create_guest_access, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.guest_access", "can_join", 6)
+          end)
+
+        "public_chat" ->
+          multi
+          |> Multi.run(:create_public_join_rule, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.join_rules", "public", 4)
+          end)
+          |> Multi.run(:create_history_visibility, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+          end)
+          |> Multi.run(:create_guest_access, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.guest_access", "forbidden", 6)
+          end)
+
+        "trusted_private_chat" ->
+          multi
+          |> Multi.run(:create_private_join_rule, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.join_rules", "invite", 4)
+          end)
+          |> Multi.run(:create_history_visibility, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+          end)
+          |> Multi.run(:create_guest_access, fn _repo, _changes ->
+            Events.create_event(attrs, "m.room.guest_access", "can_join", 6)
+          end)
+
+        _ ->
+          multi
+      end
+
+    initial_state = Map.get(attrs, "initial_state", false)
+
+    multi =
+      if initial_state do
+        Enum.with_index(initial_state, 6)
+        |> Enum.reduce(multi, fn {state, index}, multi ->
+          Multi.run(multi, :create_initial_state, fn _repo, _changes ->
+            Events.create_event(state, "initial_state", index)
+          end)
+        end)
+      else
+        multi
+      end
+
+    # TODO: Events implied by m.room.name, m.room.topic, and invites
+
+    Repo.transaction(multi)
   end
 
   @doc """

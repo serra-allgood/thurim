@@ -7,6 +7,66 @@ defmodule Thurim.Events do
   alias Thurim.Repo
 
   alias Thurim.Events.Event
+  alias Thurim.Events.EventStateKey
+
+  @default_power_levels %{
+    "ban" => 50,
+    "events" => %{
+      "m.room.avatar" => 50,
+      "m.room.canonical_alias" => 50,
+      "m.room.history_visibility" => 100,
+      "m.room.name" => 50,
+      "m.room.power_levels" => 100,
+      "m.room.server_acl" => 100,
+      "m.room.tombstone" => 100,
+      "m.space.child" => 50,
+      "m.room.topic" => 50,
+      "m.room.pinned_events" => 50,
+      "m.reaction" => 0,
+      "im.vector.modular.widgets" => 50
+    },
+    "events_default" => 0,
+    "historical" => 100,
+    "invite" => 0,
+    "kick" => 50,
+    "redact" => 50,
+    "state_default" => 50,
+    "users_default" => 0
+  }
+
+  def users_in_room(room_id) do
+    from(
+      e in Event,
+      where: e.room_id == ^room_id,
+      where: e.type == "m.room.member",
+      group_by: [e.state_key],
+      select: {e.state_key, fragment("array_agg(content->'membership')")}
+    )
+    |> Repo.all()
+    |> Enum.filter(fn {_user_id, membership_events} -> List.last(membership_events) == "join" end)
+    |> Enum.map(fn {user_id, _events} -> user_id end)
+  end
+
+  def find_or_create_state_key(state_key) do
+    event_state_key = get_event_state_key(state_key)
+
+    if event_state_key do
+      {:ok, event_state_key}
+    else
+      create_state_key(state_key)
+    end
+  end
+
+  def get_event_state_key(state_key) do
+    from(esk in EventStateKey, where: esk.state_key == ^state_key)
+    |> Repo.one()
+  end
+
+  def create_state_key(state_key) do
+    %EventStateKey{}
+    |> EventStateKey.changeset(%{"state_key" => state_key})
+    |> Repo.insert()
+  end
 
   @doc """
   Returns the list of events.
@@ -49,6 +109,113 @@ defmodule Thurim.Events do
       {:error, %Ecto.Changeset{}}
 
   """
+  def create_event(attrs, "m.room.power_levels", depth) do
+    {:ok, event_state_key} = find_or_create_state_key("")
+    sender = Map.fetch!(attrs, "sender")
+
+    attrs
+    |> Map.merge(%{
+      "depth" => depth,
+      "type" => "m.room.power_levels",
+      "state_key" => event_state_key.state_key,
+      "content" =>
+        Map.merge(
+          Map.put(@default_power_levels, "users", %{sender => 100}),
+          Map.get(attrs, "power_level_content_override", %{})
+        )
+    })
+    |> create_event()
+  end
+
+  def create_event(attrs, "initial_state", depth) do
+    {:ok, event_state_key} = Map.get(attrs, "event_state_key", "")
+
+    Map.merge(attrs, %{"state_key" => event_state_key.state_key, "depth" => depth})
+    |> create_event()
+  end
+
+  def create_event(params, "m.room.create") do
+    {:ok, event_state_key} = find_or_create_state_key("")
+
+    Map.merge(params, %{
+      "state_key" => event_state_key.state_key,
+      "depth" => 1,
+      "auth_event_ids" => [],
+      "content" =>
+        Map.get(params, "content_creation", %{})
+        |> Map.merge(%{
+          "creator" => Map.fetch!(params, "sender")
+        }),
+      "type" => "m.room.create",
+      "room_id" => Map.fetch!(params, "room_id")
+    })
+    |> create_event()
+  end
+
+  def create_event(attrs, "m.room.member", membership, depth) do
+    {:ok, event_state_key} = Map.fetch!(attrs, "event_state_key") |> find_or_create_state_key()
+
+    attrs
+    |> Map.merge(%{
+      "depth" => depth,
+      "state_key" => event_state_key.state_key,
+      "type" => "m.room.member",
+      "content" => %{
+        "membership" => membership
+      }
+    })
+    |> create_event()
+  end
+
+  def create_event(attrs, "m.room.join_rules", join_rule, depth) do
+    {:ok, event_state_key} = find_or_create_state_key("")
+
+    attrs
+    |> Map.merge(%{
+      "depth" => depth,
+      "type" => "m.room.join_rules",
+      "state_key" => event_state_key.state_key,
+      "content" =>
+        Map.merge(
+          %{
+            "join_rule" => join_rule
+          },
+          Map.get(attrs, "content", %{})
+        )
+    })
+    |> create_event()
+  end
+
+  def create_event(attrs, "m.room.history_visibility", visibility, depth) do
+    {:ok, event_state_key} = find_or_create_state_key("")
+
+    attrs
+    |> Map.merge(%{
+      "depth" => depth,
+      "type" => "m.room.history_visibility",
+      "state_key" => event_state_key.state_key,
+      "content" => %{
+        "history_visibility" => visibility
+      }
+    })
+    |> create_event()
+  end
+
+  def create_event(attrs, "m.room.guest_access", access, depth) do
+    {:ok, event_state_key} = find_or_create_state_key("")
+
+    attrs
+    |> Map.merge(%{
+      "depth" => depth,
+      "type" => "m.room.guest_access",
+      "state_key" => event_state_key.state_key,
+      "content" => %{
+        "guest_access" => access
+      }
+    })
+    |> create_event()
+  end
+
   def create_event(attrs \\ %{}) do
     %Event{}
     |> Event.changeset(attrs)
