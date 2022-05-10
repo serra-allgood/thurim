@@ -34,6 +34,17 @@ defmodule Thurim.Events do
     "users_default" => 0
   }
 
+  def find_next_timestamp(timestamp) do
+    from(e in Event,
+      where: e.origin_server_ts >= ^timestamp,
+      order_by: [desc: e.origin_server_ts],
+      select: e.origin_server_ts,
+      limit: 1
+    )
+    |> Repo.all()
+    |> List.first()
+  end
+
   def find_or_create_state_key(state_key) do
     event_state_key = get_event_state_key(state_key)
 

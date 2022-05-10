@@ -55,7 +55,11 @@ defmodule Thurim.Events.Event do
 
   defp set_default_origin_server_ts(changeset) do
     if get_field(changeset, :origin_server_ts) |> is_nil() do
-      put_change(changeset, :origin_server_ts, (Timex.now() |> Timex.to_unix()) * 1000)
+      put_change(
+        changeset,
+        :origin_server_ts,
+        Timex.now() |> DateTime.to_unix(:millisecond)
+      )
     else
       changeset
     end

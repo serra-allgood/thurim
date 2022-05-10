@@ -8,7 +8,7 @@ defmodule Thurim.Sync.SyncServer do
   # Sync state looks like the following:
   # %{
   #   [localpart] => %{
-  #     [device_id] => {cursor, %{[room_id] => %{"state" => [], "ephemereal" => []}}}
+  #     [device_id] => {cursor, %{[room_id] => %{"persistent" => [], "ephemereal" => []}}}
   #   }
   # }
 
@@ -61,7 +61,7 @@ defmodule Thurim.Sync.SyncServer do
         devices
         |> Enum.map(fn {device_id, {cursor, rooms}} ->
           {device_id,
-           {cursor, Map.put(rooms, room.room_id, %{"state" => [], "ephemereal" => []})}}
+           {cursor, Map.put(rooms, room.room_id, %{"persistent" => [], "ephemereal" => []})}}
         end)
         |> Enum.into(%{})
       end)
@@ -99,7 +99,23 @@ defmodule Thurim.Sync.SyncServer do
   end
 
   defp build_response(cursor, rooms) do
-    {cursor, rooms}
+    new_cursor = Cursor.update(cursor)
+
+    reply = %{
+      "account_data" => [],
+      "device_lists" => [],
+      "device_one_time_keys_count" => 0,
+      "next_batch" => Cursor.to_token(new_cursor),
+      "presence" => [],
+      "rooms" => %{
+        "invite" => %{},
+        "join" => %{},
+        "knock" => %{},
+        "leave" => %{}
+      }
+    }
+
+    {new_cursor, reply}
   end
 
   defp drain_state(state, account, device, new_cursor, rooms) do
@@ -109,7 +125,9 @@ defmodule Thurim.Sync.SyncServer do
         device.device_id,
         {new_cursor,
          rooms
-         |> Enum.map(fn {room_id, _events} -> {room_id, %{"state" => [], "ephemereal" => []}} end)
+         |> Enum.map(fn {room_id, _events} ->
+           {room_id, %{"persistent" => [], "ephemereal" => []}}
+         end)
          |> Enum.into(%{})}
       )
     end)
@@ -139,7 +157,7 @@ defmodule Thurim.Sync.SyncServer do
       Enum.member?(localparts, account.localpart)
     end)
     |> Enum.map(fn {room, _localparts} ->
-      {room.room_id, %{"state" => [], "ephemereal" => []}}
+      {room.room_id, %{"persistent" => [], "ephemereal" => []}}
     end)
     |> Enum.into(%{})
   end
