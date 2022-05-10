@@ -1,4 +1,4 @@
-defmodule Thurim.AccountData.AccountDatum do
+defmodule Thurim.User.AccountData do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -13,8 +13,8 @@ defmodule Thurim.AccountData.AccountDatum do
   end
 
   @doc false
-  def changeset(account_datum, attrs) do
-    account_datum
+  def changeset(account_data, attrs) do
+    account_data
     |> cast(attrs, [:localpart, :room_id, :type, :content])
     |> validate_required([:localpart, :type, :content])
     |> unique_constraint([:localpart, :room_id, :type], name: :account_data_pkey)

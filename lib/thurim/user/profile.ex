@@ -1,4 +1,4 @@
-defmodule Thurim.Profiles.Profile do
+defmodule Thurim.User.Profile do
   use Ecto.Schema
   import Ecto.Changeset
 
