@@ -6,6 +6,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   alias Thurim.Devices
   alias Thurim.AccessTokens
   alias Thurim.AccountData
+  alias Thurim.Sync.SyncServer
 
   @matrix_config Application.get_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flows]
@@ -28,7 +29,8 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
   def login(conn, params) do
     with %{"type" => login_type} when login_type == "m.login.password" <- params,
-         %{"type" => identifier_type, "user" => localpart} when identifier_type == "m.id.user" <- params["identifier"],
+         %{"type" => identifier_type, "user" => localpart} when identifier_type == "m.id.user" <-
+           params["identifier"],
          %{"password" => password} <- params,
          {:ok, account} <- User.authenticate(localpart, password) do
       device_display_name = Map.get(params, "initial_display_name", Utils.get_ua_repr(conn))
@@ -37,6 +39,8 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
       device =
         case Devices.get_by_device_id(device_id, account.localpart) do
           nil ->
+            SyncServer.add_device(account, device_id)
+
             Devices.create_device_and_access_token(%{
               device_id: device_id,
               display_name: device_display_name,
@@ -72,17 +76,17 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   end
 
   def logout(conn, _params) do
-    Map.get(conn.assigns, :access_token)
+    Map.get(conn.assigns, "access_token")
     |> AccessTokens.delete_access_token()
 
-    Map.get(conn.assigns, :current_device)
+    Map.get(conn.assigns, "current_device")
     |> Devices.delete_device()
 
     json(conn, %{})
   end
 
   def logout_all(conn, _params) do
-    account = Map.get(conn.assigns, :current_account) |> User.preload_account()
+    account = Map.get(conn.assigns, "current_account") |> User.preload_account()
 
     AccessTokens.delete_access_tokens(account.access_tokens)
     Devices.delete_devices(account.devices)
@@ -91,18 +95,19 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   end
 
   def password(conn, %{"new_password" => new_password} = params) do
-    account = Map.get(conn.assigns, :current_account) |> User.preload_account()
+    account = Map.get(conn.assigns, "current_account") |> User.preload_account()
     logout_devices = Map.get(params, "logout_devices", true)
 
     account |> User.update_account(%{"password" => new_password})
 
     if logout_devices do
-      access_token = Map.get(conn.assigns, :access_token)
-      device = Map.get(conn.assigns, :current_device)
+      access_token = Map.get(conn.assigns, "access_token")
+      device = Map.get(conn.assigns, "current_device")
 
       other_access_tokens =
         account.access_tokens
         |> Enum.filter(&(&1.id != access_token.id))
+
       other_devices =
         account.devices
         |> Enum.filter(&(&1.session_id != device.session_id))
@@ -133,6 +138,8 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
     case User.register(register_params) do
       {:ok, %{account: account, device: device, signed_access_token: signed_access_token}} ->
+        SyncServer.add_user(account, device)
+
         render(conn, "create.json",
           inhibit_login: register_params["inhibit_login"],
           account: account,
@@ -146,7 +153,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   end
 
   def push_rules(conn, _params) do
-    account = Map.get(conn.assigns, :current_account)
+    account = Map.get(conn.assigns, "current_account")
     account_data = AccountData.get_push_rules(account.localpart)
     push_rules = account_data.content
 

@@ -12,6 +12,7 @@ defmodule Thurim.User do
   alias Thurim.Profiles
   alias Thurim.AccountData
   alias Thurim.AccessTokens
+  alias Thurim.Events.Event
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
@@ -38,18 +39,44 @@ defmodule Thurim.User do
   end
 
   def register(params) do
-    multi = Multi.new()
-    |> Multi.insert(:account, Account.changeset(%Account{}, params))
-    |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
-    |> Multi.run(:profile, fn _repo, %{account: account} -> Profiles.create_profile(%{"localpart" => account.localpart}) end)
-    |> Multi.run(:account_data, fn _repo, %{account: account} -> AccountData.create_push_rules(%{"localpart" => account.localpart}) end)
-    |> Multi.run(:signed_access_token, fn _repo, %{device: device, account: account} -> AccessTokens.create_and_sign(device.session_id, account.localpart) end)
+    multi =
+      Multi.new()
+      |> Multi.insert(:account, Account.changeset(%Account{}, params))
+      |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
+      |> Multi.run(:profile, fn _repo, %{account: account} ->
+        Profiles.create_profile(%{"localpart" => account.localpart})
+      end)
+      |> Multi.run(:account_data, fn _repo, %{account: account} ->
+        AccountData.create_push_rules(%{"localpart" => account.localpart})
+      end)
+      |> Multi.run(:signed_access_token, fn _repo, %{device: device, account: account} ->
+        AccessTokens.create_and_sign(device.session_id, account.localpart)
+      end)
 
     Repo.transaction(multi)
   end
 
   def preload_account(account) do
     account |> Repo.preload([:devices, :access_tokens])
+  end
+
+  def users_in_room(room) do
+    from(
+      e in Event,
+      where: e.room_id == ^room.room_id,
+      where: e.type == "m.room.member",
+      group_by: [e.state_key],
+      select: {e.state_key, fragment("array_agg(content->'membership')")}
+    )
+    |> Repo.all()
+    |> Enum.filter(fn {_user_id, membership_events} -> List.last(membership_events) == "join" end)
+    |> Enum.map(fn {user_id, _events} -> user_id end)
+  end
+
+  def extract_localpart(user_id) do
+    [head | _tail] = String.split(user_id, ":", parts: 2)
+    "@" <> localpart = head
+    localpart
   end
 
   @doc """
@@ -63,6 +90,10 @@ defmodule Thurim.User do
   """
   def list_accounts do
     Repo.all(Account)
+  end
+
+  def list_accounts_with_devices do
+    Repo.all(Account) |> Repo.preload([:devices])
   end
 
   def get_account(localpart), do: Repo.get(Account, localpart)

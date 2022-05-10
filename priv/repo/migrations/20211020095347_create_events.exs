@@ -18,6 +18,10 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
 
       add :content, :map, null: false
 
+      add :sender, :text, null: false
+
+      add :origin_server_ts, :bigint, null: false
+
       timestamps()
     end
 

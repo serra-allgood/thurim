@@ -12,7 +12,6 @@ defmodule Thurim.Presence.PresenceAgent do
   @enforce_keys [:presence]
   defstruct [:presence, :status_msg, :last_active_ago]
 
-  @spec start_presence_agent(String.t()) :: pid
   def start_presence_agent(user_id) do
     case Agent.start_link(
            fn -> %{presence: "offline", last_active: Timex.now("UTC")} end,

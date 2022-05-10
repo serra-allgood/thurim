@@ -10,12 +10,6 @@ defmodule ThurimWeb.Endpoint do
     signing_salt: "+fNb/KOs"
   ]
 
-  socket "/socket", ThurimWeb.UserSocket,
-    websocket: true,
-    longpoll: false
-
-  socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
-
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest
@@ -48,11 +42,13 @@ defmodule ThurimWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
   plug Corsica,
     origins: "*",
     allow_credentials: true,
     allow_methods: :all,
     allow_headers: ["Content-Type", "Authorization"],
     log: [rejected: :error, invalid: :warn, accepted: :debug]
+
   plug ThurimWeb.Router
 end

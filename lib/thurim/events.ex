@@ -34,19 +34,6 @@ defmodule Thurim.Events do
     "users_default" => 0
   }
 
-  def users_in_room(room_id) do
-    from(
-      e in Event,
-      where: e.room_id == ^room_id,
-      where: e.type == "m.room.member",
-      group_by: [e.state_key],
-      select: {e.state_key, fragment("array_agg(content->'membership')")}
-    )
-    |> Repo.all()
-    |> Enum.filter(fn {_user_id, membership_events} -> List.last(membership_events) == "join" end)
-    |> Enum.map(fn {user_id, _events} -> user_id end)
-  end
-
   def find_or_create_state_key(state_key) do
     event_state_key = get_event_state_key(state_key)
 

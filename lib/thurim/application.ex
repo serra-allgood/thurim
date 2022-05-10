@@ -21,7 +21,7 @@ defmodule Thurim.Application do
       {ThurimWeb.AuthSessionCache, []},
       {Horde.Registry, [name: Thurim.Registry, keys: :unique]},
       {Horde.DynamicSupervisor, [name: Thurim.DistributedSupervisor, strategy: :one_for_one]},
-      {Thurim.RoomServer, []}
+      {Thurim.Sync.SyncServer, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
