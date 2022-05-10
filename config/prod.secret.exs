@@ -4,6 +4,12 @@
 # remember to add this file to your .gitignore.
 use Mix.Config
 
+config :thurim, :matrix,
+  domain: System.get_env("DOMAIN") || raise("environment variable DOMAIN is missing"),
+  homeserver_url:
+    System.get_env("HOMESERVER_URL") || raise("environment variable HOMESERVER_URL is missing"),
+  identity_server_url: "https://matrix.org"
+
 database_url =
   System.get_env("DATABASE_URL") ||
     raise """

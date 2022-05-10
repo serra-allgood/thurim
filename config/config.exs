@@ -12,16 +12,15 @@ config :thurim, :matrix,
     %{stages: ["m.login.dummy"]},
     %{stages: ["m.login.password"]}
   ],
-  domain: "localhost",
-  homeserver_url: "https://localhost:4001",
-  identity_server_url: "https://matrix.org",
   default_room_version: "5"
 
 config :thurim, ThurimWeb.AuthSessionCache,
-  gc_interval: 60 * 60 * 10 # 10 minutes
+  # 10 minutes
+  gc_interval: 60 * 60 * 10
 
 config :thurim, Thurim.AccessToken.AccessTokenCache,
-  gc_interval: 86_400 # 24 hrs
+  # 24 hrs
+  gc_interval: 86_400
 
 config :thurim,
   ecto_repos: [Thurim.Repo],
