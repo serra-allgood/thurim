@@ -12,7 +12,9 @@ config :thurim, :matrix,
     %{stages: ["m.login.dummy"]},
     %{stages: ["m.login.password"]}
   ],
-  default_room_version: "5"
+  default_room_version: "5",
+  domain: "localhost",
+  homeserver_url: "https://localhost:4001"
 
 config :thurim, ThurimWeb.AuthSessionCache,
   # 10 minutes
