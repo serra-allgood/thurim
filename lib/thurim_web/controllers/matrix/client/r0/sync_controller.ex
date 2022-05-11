@@ -27,6 +27,8 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
         {:ok, response} -> json(conn, response)
         :error -> json_error(conn, :m_unknown_error)
       end
+    else
+      json(conn, %{})
     end
   end
 end

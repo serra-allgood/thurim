@@ -12,6 +12,7 @@ config :thurim, :matrix,
     %{stages: ["m.login.dummy"]},
     %{stages: ["m.login.password"]}
   ],
+  auth_flow_types: [%{"type" => "m.login.password"}],
   default_room_version: "5",
   domain: "localhost",
   homeserver_url: "https://localhost:4001"

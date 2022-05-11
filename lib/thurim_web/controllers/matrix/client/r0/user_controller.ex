@@ -8,7 +8,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   alias Thurim.Sync.SyncServer
 
   @matrix_config Application.get_env(:thurim, :matrix)
-  @flows @matrix_config[:auth_flows]
+  @flows @matrix_config[:auth_flow_types]
   @homeserver_url @matrix_config[:homeserver_url]
   @identity_server_url @matrix_config[:identity_server_url]
 
