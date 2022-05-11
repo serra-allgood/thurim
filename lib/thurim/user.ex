@@ -9,10 +9,11 @@ defmodule Thurim.User do
 
   alias Thurim.User.Account
   alias Thurim.Devices
-  alias Thurim.Profiles
-  alias Thurim.AccountData
   alias Thurim.AccessTokens
   alias Thurim.Events.Event
+  alias Thurim.User.Profile
+  alias Thurim.User.AccountData
+  alias Thurim.PushRules
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
@@ -26,6 +27,25 @@ defmodule Thurim.User do
 
   def generate_localpart() do
     UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
+  end
+
+  def create_profile(params \\ %{}) do
+    %Profile{}
+    |> Profile.changeset(params)
+    |> Repo.insert()
+  end
+
+  def create_push_rules(attrs \\ %{}) do
+    %AccountData{
+      type: "m.default_push_rules",
+      content: PushRules.default_push_rules(attrs["localpart"])
+    }
+    |> AccountData.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def get_push_rules(localpart, room_id \\ "") do
+    Repo.get_by(AccountData, localpart: localpart, room_id: room_id, type: "m.default_push_rules")
   end
 
   def authenticate(localpart, password) do
@@ -44,10 +64,10 @@ defmodule Thurim.User do
       |> Multi.insert(:account, Account.changeset(%Account{}, params))
       |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
       |> Multi.run(:profile, fn _repo, %{account: account} ->
-        Profiles.create_profile(%{"localpart" => account.localpart})
+        create_profile(%{"localpart" => account.localpart})
       end)
       |> Multi.run(:account_data, fn _repo, %{account: account} ->
-        AccountData.create_push_rules(%{"localpart" => account.localpart})
+        create_push_rules(%{"localpart" => account.localpart})
       end)
       |> Multi.run(:signed_access_token, fn _repo, %{device: device, account: account} ->
         AccessTokens.create_and_sign(device.session_id, account.localpart)

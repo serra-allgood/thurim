@@ -10,8 +10,8 @@ defmodule Thurim.User.Account do
   @foreign_key_type :string
   schema "accounts" do
     field :is_deactivated, :boolean, default: false
-    field :password, :string, virtual: true, redacted: true
-    field :password_hash, :string, redacted: true
+    field :password, :string, virtual: true, redact: true
+    field :password_hash, :string, redact: true
 
     timestamps()
 

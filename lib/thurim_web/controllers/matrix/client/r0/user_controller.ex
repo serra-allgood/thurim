@@ -5,7 +5,6 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   alias Thurim.Utils
   alias Thurim.Devices
   alias Thurim.AccessTokens
-  alias Thurim.AccountData
   alias Thurim.Sync.SyncServer
 
   @matrix_config Application.get_env(:thurim, :matrix)
@@ -154,7 +153,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
   def push_rules(conn, _params) do
     account = Map.get(conn.assigns, "current_account")
-    account_data = AccountData.get_push_rules(account.localpart)
+    account_data = User.get_push_rules(account.localpart)
     push_rules = account_data.content
 
     json(conn, push_rules)
