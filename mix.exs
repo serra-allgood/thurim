@@ -34,22 +34,23 @@ defmodule Thurim.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.6.8"},
-      {:phoenix_ecto, "~> 4.1"},
-      {:ecto_sql, "~> 3.4"},
+      {:phoenix_ecto, "~> 4.4"},
+      {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_live_dashboard, "~> 0.4"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:gettext, "~> 0.11"},
-      {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
+      {:phoenix_live_dashboard, "~> 0.6"},
+      {:swoosh, "~> 1.3"},
+      {:telemetry_metrics, "~> 0.6"},
+      {:telemetry_poller, "~> 1.0"},
+      {:gettext, "~> 0.18"},
+      {:jason, "~> 1.2"},
+      {:plug_cowboy, "~> 2.5"},
       {:ecto_psql_extras, "~> 0.2"},
       {:bcrypt_elixir, "~> 2.0"},
       {:corsica, "~> 1.1"},
       {:nebulex, "~> 1.2.0"},
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
-      {:horde, "~> 0.7.0"},
+      {:horde, "~> 0.8.7"},
       {:timex, "~> 3.0"}
     ]
   end
