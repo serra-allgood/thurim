@@ -17,6 +17,14 @@ config :thurim, :matrix,
   domain: "localhost",
   homeserver_url: "https://localhost:4001"
 
+config :thurim, ThurimWeb.AuthSessionCache,
+  # 10 minutes
+  gc_interval: 60 * 60 * 10
+
+config :thurim, Thurim.AccessToken.AccessTokenCache,
+  # 24 hrs
+  gc_interval: 86_400
+
 config :thurim,
   ecto_repos: [Thurim.Repo],
   generators: [binary_id: true]
@@ -24,6 +32,7 @@ config :thurim,
 # Configures the endpoint
 config :thurim, ThurimWeb.Endpoint,
   url: [host: "localhost"],
+  secret_key_base: "HFselKcyTQskoEG2FaIjyDDIESOu1ZSXf1rEeQyG66cl3P1UdjxuORd0qTiQk4jM",
   render_errors: [view: ThurimWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: Thurim.PubSub,
   live_view: [signing_salt: "Y9mMCo0T"]

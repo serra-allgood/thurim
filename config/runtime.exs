@@ -21,6 +21,11 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  config :thurim, :matrix,
+    domain: System.get_env("DOMAIN") || raise("Environment variable DOMAIN is not set"),
+    homeserver_url:
+      System.get_env("HOMESERVER_URL") || raise("Environment variable HOMESERVER_URL is not set")
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """

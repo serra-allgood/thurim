@@ -15,6 +15,12 @@ defmodule ThurimWeb.Router do
     plug ThurimWeb.Plugs.RequireAccessToken
   end
 
+  scope "/.well-known/matrix", ThurimWeb.Matrix do
+    pipe_through :api
+
+    get "/client", WellKnownController, :client
+  end
+
   scope "/_matrix/client", ThurimWeb.Matrix do
     pipe_through :api
 
