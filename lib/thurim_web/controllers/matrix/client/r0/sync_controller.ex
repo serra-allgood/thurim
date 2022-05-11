@@ -13,8 +13,8 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
   #   timeout: integer
   # }
   def index(conn, params) do
-    device = Map.get(conn.assigns, "current_device")
-    account = Map.get(conn.assigns, "current_account")
+    device = Map.get(conn.assigns, :current_device)
+    account = Map.get(conn.assigns, :current_account)
 
     filter =
       case Map.fetch(params, "filter") do

@@ -13,8 +13,8 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   #   name?: string
   # }
   def create(conn, params) do
-    account = Map.fetch!(conn.assigns, "current_account")
-    sender = Map.fetch!(conn.assigns, "sender")
+    account = Map.fetch!(conn.assigns, :current_account)
+    sender = Map.fetch!(conn.assigns, :sender)
 
     result =
       Map.put(params, "sender", sender)

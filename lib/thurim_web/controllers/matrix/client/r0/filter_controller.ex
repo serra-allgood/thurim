@@ -5,7 +5,7 @@ defmodule ThurimWeb.Matrix.Client.R0.FilterController do
   alias Thurim.Filters
 
   def create(conn, params) do
-    account = Map.get(conn.assigns, "current_account")
+    account = Map.get(conn.assigns, :current_account)
 
     filter_content =
       Map.take(params, ["event_fields", "event_format", "presence", "account_data", "room"])

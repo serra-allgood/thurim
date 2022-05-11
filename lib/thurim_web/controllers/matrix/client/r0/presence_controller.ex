@@ -12,7 +12,7 @@ defmodule ThurimWeb.Matrix.Client.R0.PresenceController do
   end
 
   def update(conn, params) do
-    sender = Map.get(conn.assigns, "sender")
+    sender = Map.get(conn.assigns, :sender)
 
     if sender == params["user_id"] do
       Presence.set_user_presence(params["user_id"], params["presence"], params["status_msg"])
