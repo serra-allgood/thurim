@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :thurim, :matrix,
   domain: "localhost",

@@ -1,11 +1,11 @@
 # This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
+# and its dependencies with the aid of the Config module.
 #
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
 
 # General application configuration
-use Mix.Config
+import Config
 
 config :thurim, :matrix,
   auth_flows: [
@@ -16,14 +16,6 @@ config :thurim, :matrix,
   domain: "localhost",
   homeserver_url: "https://localhost:4001"
 
-config :thurim, ThurimWeb.AuthSessionCache,
-  # 10 minutes
-  gc_interval: 60 * 60 * 10
-
-config :thurim, Thurim.AccessToken.AccessTokenCache,
-  # 24 hrs
-  gc_interval: 86_400
-
 config :thurim,
   ecto_repos: [Thurim.Repo],
   generators: [binary_id: true]
@@ -31,10 +23,21 @@ config :thurim,
 # Configures the endpoint
 config :thurim, ThurimWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "HFselKcyTQskoEG2FaIjyDDIESOu1ZSXf1rEeQyG66cl3P1UdjxuORd0qTiQk4jM",
   render_errors: [view: ThurimWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: Thurim.PubSub,
-  live_view: [signing_salt: "EJbWbKzT"]
+  live_view: [signing_salt: "Y9mMCo0T"]
+
+# Configures the mailer
+#
+# By default it uses the "Local" adapter which stores the emails
+# locally. You can see the emails in your browser, at "/dev/mailbox".
+#
+# For production it's recommended to configure a different adapter
+# at the `config/runtime.exs`.
+config :thurim, Thurim.Mailer, adapter: Swoosh.Adapters.Local
+
+# Swoosh API client is needed for adapters other than SMTP.
+config :swoosh, :api_client, false
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -46,4 +49,4 @@ config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+import_config "#{config_env()}.exs"
