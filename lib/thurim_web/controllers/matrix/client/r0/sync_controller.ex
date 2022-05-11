@@ -18,7 +18,7 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
 
     filter =
       case Map.fetch(params, "filter") do
-        {:ok, filter_id} -> Filters.get_filter!(filter_id)
+        {:ok, filter_id} -> Filters.get_by(id: filter_id, localpart: account.localpart)
         :error -> nil
       end
 

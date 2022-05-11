@@ -8,8 +8,8 @@ defmodule Thurim.Filters do
 
   alias Thurim.Filters.Filter
 
-  def get_by!(attrs) do
-    Repo.get_by!(Filter, attrs)
+  def get_by(attrs) do
+    Repo.get_by(Filter, attrs)
   end
 
   @doc """
