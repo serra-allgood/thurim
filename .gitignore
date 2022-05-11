@@ -28,5 +28,3 @@ thurim-*.tar
 /priv/static/
 
 /priv/cert/
-
-prod.secret.exs
