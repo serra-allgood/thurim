@@ -48,7 +48,6 @@ defmodule Thurim.Events.Event do
       :sender,
       :origin_server_ts
     ])
-    |> validate_not_nil([:state_key])
     |> assoc_constraint(:room)
     |> assoc_constraint(:event_state_key)
   end
@@ -65,13 +64,13 @@ defmodule Thurim.Events.Event do
     end
   end
 
-  defp validate_not_nil(changeset, fields) do
-    Enum.reduce(fields, changeset, fn field, changeset ->
-      if get_field(changeset, field) |> is_nil() do
-        add_error(changeset, field, "cannot be nil")
-      else
-        changeset
-      end
-    end)
-  end
+  # defp validate_not_nil(changeset, fields) do
+  #   Enum.reduce(fields, changeset, fn field, changeset ->
+  #     if get_field(changeset, field) |> is_nil() do
+  #       add_error(changeset, field, "cannot be nil")
+  #     else
+  #       changeset
+  #     end
+  #   end)
+  # end
 end

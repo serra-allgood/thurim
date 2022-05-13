@@ -13,8 +13,7 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
       add :type, :text, null: false
 
       add :state_key,
-          references(:event_state_keys, on_delete: :nothing, type: :text, column: :state_key),
-          null: false
+          references(:event_state_keys, on_delete: :nothing, type: :text, column: :state_key)
 
       add :content, :map, null: false
 

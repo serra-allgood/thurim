@@ -32,7 +32,6 @@ config :thurim,
 # Configures the endpoint
 config :thurim, ThurimWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "HFselKcyTQskoEG2FaIjyDDIESOu1ZSXf1rEeQyG66cl3P1UdjxuORd0qTiQk4jM",
   render_errors: [view: ThurimWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: Thurim.PubSub,
   live_view: [signing_salt: "Y9mMCo0T"]

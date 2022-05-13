@@ -80,7 +80,7 @@ defmodule Thurim.User do
     account |> Repo.preload([:devices, :access_tokens])
   end
 
-  def users_in_room(room) do
+  def user_ids_in_room(room) do
     from(
       e in Event,
       where: e.room_id == ^room.room_id,
@@ -89,8 +89,7 @@ defmodule Thurim.User do
       select: {e.state_key, fragment("array_agg(content->'membership')")}
     )
     |> Repo.all()
-    |> Enum.filter(fn {_user_id, membership_events} -> List.last(membership_events) == "join" end)
-    |> Enum.map(fn {user_id, _events} -> user_id end)
+    |> Enum.map(fn {user_id, events} -> {user_id, List.last(events)} end)
   end
 
   def extract_localpart(user_id) do

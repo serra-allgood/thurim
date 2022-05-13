@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.SyncController do
+defmodule ThurimWeb.Matrix.Client.V3.SyncController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
   alias Thurim.Sync.SyncServer
@@ -15,6 +15,7 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
   def index(conn, params) do
     device = Map.get(conn.assigns, :current_device)
     account = Map.get(conn.assigns, :current_account)
+    sender = Map.get(conn.assigns, :sender)
 
     filter =
       case Map.fetch(params, "filter") do
@@ -23,7 +24,7 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
       end
 
     if Map.get(params, "timeout", 0) == 0 do
-      case SyncServer.build_sync(account, device, filter, params) do
+      case SyncServer.build_sync(sender, device, filter, params) do
         {:ok, response} -> json(conn, response)
         :error -> json_error(conn, :m_unknown_error)
       end

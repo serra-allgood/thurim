@@ -58,11 +58,18 @@ defmodule ThurimWeb.Router do
         get "/presence/:user_id/status", PresenceController, :show
         put "/presence/:user_id/status", PresenceController, :update
 
-        post "/user/:user_id/filter", FilterController, :create
-
         get "/sync", SyncController, :index
 
         post "/createRoom", RoomController, :create
+      end
+
+      scope "/v3", V3 do
+        pipe_through :access_token
+
+        post "/user/:user_id/filter", FilterController, :create
+        get "/user/:user_id/filter/:filter_id", FilterController, :show
+
+        get "/sync", SyncController, :index
       end
     end
 
