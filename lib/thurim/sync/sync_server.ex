@@ -19,16 +19,16 @@ defmodule Thurim.Sync.SyncServer do
     {:ok, state}
   end
 
-  def add_device(account, device_id) do
-    GenServer.cast(__MODULE__, {:add_device, account, device_id})
+  def add_device(mx_user_id, device_id) do
+    GenServer.cast(__MODULE__, {:add_device, mx_user_id, device_id})
   end
 
-  def add_user(account, device) do
-    GenServer.cast(__MODULE__, {:add_user, account, device})
+  def add_user(mx_user_id, device) do
+    GenServer.cast(__MODULE__, {:add_user, mx_user_id, device})
   end
 
-  def add_room(room, account) do
-    GenServer.cast(__MODULE__, {:update_rooms, room, account})
+  def add_room(room, mx_user_id) do
+    GenServer.cast(__MODULE__, {:add_room, room, mx_user_id})
   end
 
   def build_sync(mx_user_id, device, filter, params) do
@@ -40,29 +40,41 @@ defmodule Thurim.Sync.SyncServer do
   ###########################
 
   # handle_cast for :add_device
-  def handle_cast({:add_device, account, device_id}, state) do
-    {:noreply,
-     Map.update!(state, account.localpart, fn devices ->
-       Map.put(devices, device_id, default_room_event_state(account))
-     end)}
+  def handle_cast({:add_device, mx_user_id, device_id}, state) do
+    new_state =
+      Map.put(
+        state,
+        mx_user_id,
+        Map.fetch!(state, mx_user_id)
+        |> Map.put(device_id, new_sync_state(rooms_with_mx_user_id(mx_user_id)))
+      )
+
+    {:noreply, new_state}
   end
 
   # handle_cast for :add_user
-  def handle_cast({:add_user, account, device}, state) do
-    {:noreplay, Map.put(state, account.localpart, %{device.device_id => {Cursor.new(), %{}}})}
+  def handle_cast({:add_user, mx_user_id, device}, state) do
+    new_state =
+      Map.put(state, mx_user_id, %{
+        device.device_id => new_sync_state(rooms_with_mx_user_id(mx_user_id))
+      })
+
+    {:noreplay, new_state}
   end
 
-  # handle_cast for :update_rooms
-  def handle_cast({:update_rooms, room, account}, state) do
+  # handle_cast for :add_room
+  def handle_cast({:add_room, room, mx_user_id}, state) do
     new_state =
-      Map.update(state, account.localpart, %{}, fn devices ->
-        devices
-        |> Enum.map(fn {device_id, {cursor, rooms}} ->
-          {device_id,
-           {cursor, Map.put(rooms, room.room_id, %{"persistent" => [], "ephemereal" => []})}}
+      Map.put(
+        state,
+        mx_user_id,
+        Map.fetch!(state, mx_user_id)
+        |> Enum.map(fn {device_id, pid} ->
+          SyncState.add_room_with_type(pid, {room, "join"})
+          {device_id, pid}
         end)
         |> Enum.into(%{})
-      end)
+      )
 
     {:noreply, new_state}
   end
@@ -87,7 +99,9 @@ defmodule Thurim.Sync.SyncServer do
       when not is_nil(since) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
 
-    {:reply, build_response(state, account)}
+    reply = %{}
+
+    {:reply, reply, drain_state(state, mx_user_id, device, reply)}
   end
 
   def handle_call({:build_sync, mx_user_id, device, filter, params}, _from, state)
@@ -95,7 +109,7 @@ defmodule Thurim.Sync.SyncServer do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
 
-    reply = build_response(state, mx_user_id, device)
+    reply = build_response(state, mx_user_id, device, full_state)
 
     {:reply, reply, drain_state(state, mx_user_id, device, reply)}
   end
@@ -103,12 +117,14 @@ defmodule Thurim.Sync.SyncServer do
   def handle_call({:build_sync, mx_user_id, device, filter, params}, _from, state) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
 
-    {:reply, reply, drain_state(state, account, device)}
+    reply = %{}
+
+    {:reply, reply, drain_state(state, mx_user_id, device, reply)}
   end
 
-  defp handle_presence(set_presence, account) do
+  defp handle_presence(set_presence, mx_user_id) do
     if set_presence do
-      Presence.set_user_presence(Thurim.User.mx_user_id(account.localpart), set_presence)
+      Presence.set_user_presence(mx_user_id, set_presence)
     end
   end
 
@@ -123,38 +139,30 @@ defmodule Thurim.Sync.SyncServer do
     end
   end
 
-  defp build_response(state, account, device) do
+  defp build_response(state, account, device, full_state) do
     Map.get(state, account.localpart, %{})
     |> Map.fetch!(device.device_id)
-    |> SyncState.get()
+    |> SyncState.get(full_state)
   end
 
   defp drain_state(state, mx_user_id, device, reply) do
-    Map.update!(state, account.localpart, fn devices ->
-      Map.put(
-        devices,
-        device.device_id,
-        {new_cursor,
-         rooms
-         |> Enum.map(fn {room_id, _events} ->
-           {room_id, %{"persistent" => [], "ephemereal" => []}}
-         end)
-         |> Enum.into(%{})}
-      )
-    end)
+    Map.fetch!(state, mx_user_id)
+    |> Map.fetch!(device.device_id)
+    |> SyncState.drain(reply["cursor"])
+
+    state
   end
 
   defp build_state_from_db() do
-    mx_user_id = User.mx_user_id(account.localpart)
-
     User.list_accounts_with_devices()
     |> Enum.map(fn account ->
+      mx_user_id = User.mx_user_id(account.localpart)
+
       {mx_user_id,
        account.devices
        |> map_devices_to_sync_state(mx_user_id)}
       |> Enum.into(%{})
     end)
-    |> Enum.each(fn {mx_user_id, devices} -> Enum.each(devicesend) end)
     |> Enum.into(%{})
   end
 

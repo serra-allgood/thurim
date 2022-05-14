@@ -13,7 +13,6 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   #   name?: string
   # }
   def create(conn, params) do
-    account = Map.fetch!(conn.assigns, :current_account)
     sender = Map.fetch!(conn.assigns, :sender)
 
     result =
@@ -22,7 +21,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
     case result do
       {:ok, room} ->
-        SyncServer.add_room(room, account)
+        SyncServer.add_room(room, sender)
         json(conn, %{room_id: room.room_id})
 
       {:error, error} ->

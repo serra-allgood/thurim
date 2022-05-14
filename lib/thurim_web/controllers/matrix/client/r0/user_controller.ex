@@ -38,7 +38,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
       device =
         case Devices.get_by_device_id(device_id, account.localpart) do
           nil ->
-            SyncServer.add_device(account, device_id)
+            SyncServer.add_device(User.mx_user_id(account.localpart), device_id)
 
             Devices.create_device_and_access_token(%{
               device_id: device_id,
@@ -137,7 +137,7 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
     case User.register(register_params) do
       {:ok, %{account: account, device: device, signed_access_token: signed_access_token}} ->
-        SyncServer.add_user(account, device)
+        SyncServer.add_user(User.mx_user_id(account.localpart), device)
 
         render(conn, "create.json",
           inhibit_login: register_params["inhibit_login"],
