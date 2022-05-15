@@ -1,34 +1,31 @@
 defmodule Thurim.Sync.SyncState do
   use Agent
+  alias Thurim.Sync.SyncResponse
+  alias Thurim.Sync.SyncResponse.InviteRooms
+  alias Thurim.Sync.SyncResponse.JoinRooms
 
   def start_link(_opts) do
     Agent.start_link(fn ->
-      %{
-        "account_data" => [],
-        "device_lists" => [],
-        "device_one_time_keys_count" => 0,
-        "next_batch" => "0",
-        "presence" => [],
-        "rooms" => %{
-          "invite" => %{},
-          "join" => %{},
-          "knock" => %{},
-          "leave" => %{}
-        }
-      }
+      SyncResponse.new()
     end)
   end
 
-  def get(pid, _full_state) do
-    Agent.get(pid, & &1)
+  def get(pid, full_state) do
+    state = Agent.get(pid, & &1)
+
+    if full_state do
+      joined_rooms =
+        Map.fetch!(state, :rooms) |> Map.fetch!(:join) |> Enum.map(fn {room_id, _} -> room_id end)
+    else
+    end
   end
 
   def add_room_with_type(pid, {room, join_type}) do
     Agent.update(pid, fn state ->
       Map.put(
         state,
-        "rooms",
-        Map.fetch!(state, "rooms")
+        :rooms,
+        Map.fetch!(state, :rooms)
         |> Map.update!(join_type, &Map.put(&1, room.room_id, empty_room(join_type)))
       )
     end)
@@ -102,7 +99,7 @@ defmodule Thurim.Sync.SyncState do
   end
 
   defp empty_room("invite") do
-    %{"events" => []}
+    InviteRooms.new()
   end
 
   defp empty_room("leave") do
@@ -116,18 +113,7 @@ defmodule Thurim.Sync.SyncState do
   end
 
   defp empty_room("join") do
-    %{
-      "account_data" => [],
-      "ephemeral" => [],
-      "state" => [],
-      "summary" => %{
-        "m.heroes" => [],
-        "m.invited_member_count" => 0,
-        "m.joined_member_count" => 0
-      },
-      "timeline" => %{"events" => [], "limited" => false, "prev_batch" => 0},
-      "unread_notifications_count" => %{"highlight_count" => 0, "notification_count" => 0}
-    }
+    JoinRooms.new()
   end
 
   defp empty_room(_other) do

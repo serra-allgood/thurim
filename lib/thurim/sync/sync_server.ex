@@ -31,8 +31,8 @@ defmodule Thurim.Sync.SyncServer do
     GenServer.cast(__MODULE__, {:add_room, room, mx_user_id})
   end
 
-  def build_sync(mx_user_id, device, filter, params) do
-    GenServer.call(__MODULE__, {:build_sync, mx_user_id, device, filter, params})
+  def build_sync(mx_user_id, device, filter, timeout, params) do
+    GenServer.call(__MODULE__, {:build_sync, mx_user_id, device, filter, timout, params})
   end
 
   ###########################
@@ -81,18 +81,22 @@ defmodule Thurim.Sync.SyncServer do
 
   # handle_call for :build_sync
   def handle_call(
-        {:build_sync, mx_user_id, device, filter, params = %{"since" => since}},
+        {:build_sync, mx_user_id, device, filter, timeout, params = %{"since" => since}},
         _from,
         state
       )
       when is_nil(filter) and not is_nil(since) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
+    full_state = Map.get(params, "full_state", false)
+
+    reply =
+      Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id) |> SyncState.get(full_state)
 
     {:reply}
   end
 
   def handle_call(
-        {:build_sync, mx_user_id, device, filter, params = %{"since" => since}},
+        {:build_sync, mx_user_id, device, filter, timeout, params = %{"since" => since}},
         _from,
         state
       )
@@ -104,7 +108,7 @@ defmodule Thurim.Sync.SyncServer do
     {:reply, reply, drain_state(state, mx_user_id, device, reply)}
   end
 
-  def handle_call({:build_sync, mx_user_id, device, filter, params}, _from, state)
+  def handle_call({:build_sync, mx_user_id, device, filter, timeout(params)}, _from, state)
       when is_nil(filter) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
