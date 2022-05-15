@@ -68,4 +68,21 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       json_error(conn, :m_forbidden)
     end
   end
+
+  def members(conn, %{"room_id" => room_id} = params) do
+    sender = Map.fetch!(conn.assigns, :sender)
+    at_time = Map.get(params, "at", :infinity)
+    membership = Map.get(params, "membership", nil)
+    not_membership = Map.get(params, "not_membership", nil)
+
+    if SyncServer.user_in_room?(sender, room_id) do
+      response =
+        User.membership_events_in_room(room_id, membership, not_membership, at_time)
+        |> Events.map_events()
+
+      json(conn, %{"chunk" => response})
+    else
+      json_error(conn, :m_forbidden)
+    end
+  end
 end
