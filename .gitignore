@@ -28,3 +28,5 @@ thurim-*.tar
 /priv/static/
 
 /priv/cert/
+
+fly.toml

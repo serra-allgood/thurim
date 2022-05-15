@@ -32,7 +32,7 @@ defmodule Thurim.Sync.SyncServer do
   end
 
   def build_sync(mx_user_id, device, filter, timeout, params) do
-    GenServer.call(__MODULE__, {:build_sync, mx_user_id, device, filter, timout, params})
+    GenServer.call(__MODULE__, {:build_sync, mx_user_id, device, filter, timeout, params})
   end
 
   ###########################
@@ -46,7 +46,7 @@ defmodule Thurim.Sync.SyncServer do
         state,
         mx_user_id,
         Map.fetch!(state, mx_user_id)
-        |> Map.put(device_id, new_sync_state(rooms_with_mx_user_id(mx_user_id)))
+        |> Map.put(device_id, new_sync_state(rooms_with_mx_user_id(mx_user_id), mx_user_id))
       )
 
     {:noreply, new_state}
@@ -56,7 +56,7 @@ defmodule Thurim.Sync.SyncServer do
   def handle_cast({:add_user, mx_user_id, device}, state) do
     new_state =
       Map.put(state, mx_user_id, %{
-        device.device_id => new_sync_state(rooms_with_mx_user_id(mx_user_id))
+        device.device_id => new_sync_state(rooms_with_mx_user_id(mx_user_id), mx_user_id)
       })
 
     {:noreply, new_state}
@@ -70,7 +70,7 @@ defmodule Thurim.Sync.SyncServer do
         mx_user_id,
         Map.fetch!(state, mx_user_id)
         |> Enum.map(fn {device_id, pid} ->
-          SyncState.add_room_with_type(pid, {room, "join"})
+          SyncState.add_room_with_type(pid, mx_user_id, {room, "join"})
           {device_id, pid}
         end)
         |> Enum.into(%{})
@@ -108,7 +108,7 @@ defmodule Thurim.Sync.SyncServer do
     {:reply, reply, drain_state(state, mx_user_id, device, reply)}
   end
 
-  def handle_call({:build_sync, mx_user_id, device, filter, timeout(params)}, _from, state)
+  def handle_call({:build_sync, mx_user_id, device, filter, timeout, params}, _from, state)
       when is_nil(filter) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
@@ -132,10 +132,10 @@ defmodule Thurim.Sync.SyncServer do
     end
   end
 
-  defp new_sync_state(rooms_with_join_type) do
+  defp new_sync_state(rooms_with_join_type, sender) do
     case SyncState.start_link([]) do
       {:ok, sync_state} ->
-        Enum.each(rooms_with_join_type, &SyncState.add_room_with_type(sync_state, &1))
+        Enum.each(rooms_with_join_type, &SyncState.add_room_with_type(sync_state, sender, &1))
         sync_state
 
       _ ->
@@ -172,7 +172,7 @@ defmodule Thurim.Sync.SyncServer do
   defp map_devices_to_sync_state(devices, mx_user_id) do
     devices
     |> Enum.map(fn device ->
-      {device.device_id, rooms_with_mx_user_id(mx_user_id) |> new_sync_state()}
+      {device.device_id, rooms_with_mx_user_id(mx_user_id) |> new_sync_state(mx_user_id)}
     end)
     |> Enum.into(%{})
   end

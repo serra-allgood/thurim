@@ -43,6 +43,23 @@ defmodule Thurim.Events do
     Repo.get_by(Event, attrs)
   end
 
+  def state_events_for_room_id(room_id) do
+    from(e in Event,
+      where: e.room_id == ^room_id and not is_nil(e.state_key),
+      order_by: e.origin_server_ts
+    )
+    |> Repo.all()
+  end
+
+  def heroes_for_room_id(room_id, sender) do
+    from(e in Event,
+      where: e.room_id == ^room_id and e.type == "m.room.member" and e.state_key != ^sender,
+      order_by: e.origin_server_ts,
+      select: e.state_key
+    )
+    |> Repo.all()
+  end
+
   def find_next_timestamp(timestamp) do
     from(e in Event,
       where: e.origin_server_ts >= ^timestamp,

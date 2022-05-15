@@ -2,6 +2,7 @@ defmodule Thurim.Sync.SyncResponse do
   alias Thurim.Sync.SyncResponse.InviteRooms
   alias Thurim.Sync.SyncResponse.JoinRooms
 
+  @derive Jason.Encoder
   @enforce_keys [
     :account_data,
     :device_lists,
@@ -28,7 +29,7 @@ defmodule Thurim.Sync.SyncResponse do
       presence: [],
       rooms: %{
         invite: InviteRooms.new(),
-        join: JoinsRooms.new(),
+        join: JoinRooms.new([], []),
         knock: %{},
         leave: %{}
       }

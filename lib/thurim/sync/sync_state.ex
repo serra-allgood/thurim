@@ -3,6 +3,9 @@ defmodule Thurim.Sync.SyncState do
   alias Thurim.Sync.SyncResponse
   alias Thurim.Sync.SyncResponse.InviteRooms
   alias Thurim.Sync.SyncResponse.JoinRooms
+  alias Thurim.Events
+  alias Thurim.Events.EventData
+  alias Thurim.Events.StrippedEventData
 
   def start_link(_opts) do
     Agent.start_link(fn ->
@@ -14,19 +17,63 @@ defmodule Thurim.Sync.SyncState do
     state = Agent.get(pid, & &1)
 
     if full_state do
-      joined_rooms =
-        Map.fetch!(state, :rooms) |> Map.fetch!(:join) |> Enum.map(fn {room_id, _} -> room_id end)
+      room_ids_with_full_state =
+        Map.fetch!(state, :rooms)
+        |> Map.fetch!(:join)
+        |> Map.keys()
+        |> Enum.map(&{&1, Events.state_events_for_room_id(&1)})
+        |> Enum.map(fn {room_id, events} ->
+          {room_id,
+           %{
+             state:
+               events
+               |> Enum.map(fn event ->
+                 cond do
+                   Enum.member?(StrippedEventData.stripped_events(), event.type) ->
+                     StrippedEventData.new(
+                       event.content,
+                       event.sender,
+                       event.state_key,
+                       event.type
+                     )
+
+                   true ->
+                     EventData.new(
+                       event.content,
+                       event.event_id,
+                       event.origin_server_ts,
+                       event.room_id,
+                       event.sender,
+                       event.type,
+                       event.state_key
+                     )
+                 end
+               end)
+           }}
+        end)
+
+      Map.put(
+        state,
+        :rooms,
+        Map.update!(state, :rooms, fn rooms ->
+          Map.put(rooms, :join, Map.fetch!(rooms, :join) |> Map.merge(room_ids_with_full_state))
+        end)
+      )
     else
+      state
     end
   end
 
-  def add_room_with_type(pid, {room, join_type}) do
+  def add_room_with_type(pid, sender, {room, join_type}) do
     Agent.update(pid, fn state ->
       Map.put(
         state,
         :rooms,
         Map.fetch!(state, :rooms)
-        |> Map.update!(join_type, &Map.put(&1, room.room_id, empty_room(join_type)))
+        |> Map.update!(
+          join_type,
+          &Map.put(&1, room.room_id, empty_room(join_type, sender, room.room_id))
+        )
       )
     end)
   end
@@ -98,25 +145,27 @@ defmodule Thurim.Sync.SyncState do
     end)
   end
 
-  defp empty_room("invite") do
+  defp empty_room("invite", _sender, _room_id) do
     InviteRooms.new()
   end
 
-  defp empty_room("leave") do
+  defp empty_room("leave", _sender, _room_id) do
     # TODO
     %{}
   end
 
-  defp empty_room("knock") do
+  defp empty_room("knock", _sender, _room_id) do
     # TODO
     %{}
   end
 
-  defp empty_room("join") do
-    JoinRooms.new()
+  defp empty_room("join", sender, room_id) do
+    heroes = Events.heroes_for_room_id(room_id, sender)
+    state = Events.state_events_for_room_id(room_id)
+    JoinRooms.new(heroes, state)
   end
 
-  defp empty_room(_other) do
+  defp empty_room(_other, _room_id) do
     %{}
   end
 end
