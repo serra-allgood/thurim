@@ -76,6 +76,39 @@ defmodule Thurim.Events do
     Repo.get_by(Event, attrs)
   end
 
+  def user_previously_in_room?(sender, room_id) do
+    latest_member_event = latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
+
+    latest_member_event != nil and
+      Enum.member?(~w(leave kick ban), latest_member_event.content["membership"])
+  end
+
+  def latest_state_event_of_type_in_room_id(room_id, event_type, state_key, at_time \\ nil)
+
+  def latest_state_event_of_type_in_room_id(room_id, event_type, state_key, at_time)
+      when is_nil(at_time) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where: e.type == ^event_type,
+      where: e.state_key == ^state_key,
+      order_by: [desc: e.origin_server_ts]
+    )
+    |> first()
+    |> Repo.one()
+  end
+
+  def latest_state_event_of_type_in_room_id(room_id, event_type, state_key, at_time) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where: e.type == ^event_type,
+      where: e.state_key == ^state_key,
+      where: e.origin_server_ts < ^at_time,
+      order_by: [desc: e.origin_server_ts]
+    )
+    |> first()
+    |> Repo.one()
+  end
+
   def state_events_for_room_id(room_id) do
     from(e in Event,
       where: e.room_id == ^room_id and not is_nil(e.state_key),

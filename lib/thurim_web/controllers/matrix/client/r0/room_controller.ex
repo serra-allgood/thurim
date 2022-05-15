@@ -96,4 +96,33 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       json_error(conn, :m_forbidden)
     end
   end
+
+  def state_event(
+        conn,
+        %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
+      ) do
+    sender = Map.fetch!(conn.assigns, :sender)
+
+    cond do
+      SyncServer.user_in_room?(sender, room_id) ->
+        case Events.latest_state_event_of_type_in_room_id(room_id, event_type, state_key) do
+          nil -> json_error(conn, :m_not_found)
+          event -> json(conn, event.content)
+        end
+
+      Events.user_previously_in_room?(sender, room_id) ->
+        leave_event =
+          Events.latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
+
+        case Events.latest_state_event_of_type_in_room_id(
+               room_id,
+               event_type,
+               state_key,
+               leave_event.origin_server_ts
+             ) do
+          nil -> json_error(conn, :m_not_found)
+          event -> json(conn, event.content)
+        end
+    end
+  end
 end

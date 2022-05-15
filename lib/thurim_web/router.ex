@@ -68,6 +68,7 @@ defmodule ThurimWeb.Router do
         get "/rooms/:room_id/joined_members", RoomController, :joined_members
         get "/rooms/:room_id/members", RoomController, :members
         get "/rooms/:room_id/state", RoomController, :state
+        get "/rooms/:room_id/state/:event_type/:state_key", RoomController, :state_event
       end
 
       scope "/v3", V3 do
