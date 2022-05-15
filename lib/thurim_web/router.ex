@@ -63,6 +63,7 @@ defmodule ThurimWeb.Router do
         get "/sync", SyncController, :index
 
         post "/createRoom", RoomController, :create
+        get "/rooms/:room_id/event/:event_id", RoomController, :get_event
       end
 
       scope "/v3", V3 do

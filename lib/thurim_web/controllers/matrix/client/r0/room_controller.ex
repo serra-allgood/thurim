@@ -4,6 +4,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   alias Thurim.Sync.SyncServer
   alias Thurim.Rooms
   alias Thurim.RoomServer
+  alias Thurim.Events
 
   # Event shape:
   # {
@@ -26,6 +27,34 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
       {:error, error} ->
         json_error(conn, error)
+    end
+  end
+
+  def get_event(conn, %{"room_id" => room_id, "event_id" => event_id} = _params) do
+    case Events.get_by(room_id: room_id, event_id: event_id) do
+      nil ->
+        json_error(conn, :m_not_found)
+
+      event when is_nil(event.state_key) ->
+        json(conn, %{
+          content: event.content,
+          event_id: event.event_id,
+          origin_server_ts: event.origin_server_ts,
+          room_id: event.room_id,
+          sender: event.sender,
+          type: event.type
+        })
+
+      event ->
+        json(conn, %{
+          content: event.content,
+          event_id: event.event_id,
+          origin_server_ts: event.origin_server_ts,
+          room_id: event.room_id,
+          sender: event.sender,
+          type: event.type,
+          state_key: event.state_key
+        })
     end
   end
 end

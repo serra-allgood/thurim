@@ -3,10 +3,12 @@ defmodule Thurim.Events.Event do
   import Ecto.Changeset
   alias Thurim.Rooms.Room
   alias Thurim.Events.EventStateKey
+  alias Thurim.Events
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "events" do
     field :auth_event_ids, {:array, :binary_id}, default: []
+    field :event_id, :string
     field :depth, :integer
     field :type, :string
     field :content, :map
@@ -30,6 +32,7 @@ defmodule Thurim.Events.Event do
       [
         :depth,
         :auth_event_ids,
+        :event_id,
         :type,
         :content,
         :state_key,
@@ -39,12 +42,16 @@ defmodule Thurim.Events.Event do
       ],
       empty_values: []
     )
-    |> set_default_origin_server_ts()
+    |> set_defaults(
+      origin_server_ts: Timex.now() |> DateTime.to_unix(:millisecond),
+      event_id: Events.generate_event_id()
+    )
     |> validate_required([
       :depth,
       :type,
       :content,
       :room_id,
+      :event_id,
       :sender,
       :origin_server_ts
     ])
@@ -52,16 +59,14 @@ defmodule Thurim.Events.Event do
     |> assoc_constraint(:event_state_key)
   end
 
-  defp set_default_origin_server_ts(changeset) do
-    if get_field(changeset, :origin_server_ts) |> is_nil() do
-      put_change(
-        changeset,
-        :origin_server_ts,
-        Timex.now() |> DateTime.to_unix(:millisecond)
-      )
-    else
-      changeset
-    end
+  defp set_defaults(changeset, defaults) do
+    Enum.reduce(defaults, changeset, fn {field, value}, changeset ->
+      if get_field(changeset, field) |> is_nil() do
+        put_change(changeset, field, value)
+      else
+        changeset
+      end
+    end)
   end
 
   # defp validate_not_nil(changeset, fields) do

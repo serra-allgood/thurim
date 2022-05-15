@@ -33,6 +33,15 @@ defmodule Thurim.Events do
     "state_default" => 50,
     "users_default" => 0
   }
+  @domain Application.get_env(:thurim, :matrix)[:domain]
+
+  def generate_event_id do
+    "$" <> UUID.uuid4() <> ":" <> @domain
+  end
+
+  def get_by(attrs \\ []) do
+    Repo.get_by(Event, attrs)
+  end
 
   def find_next_timestamp(timestamp) do
     from(e in Event,
