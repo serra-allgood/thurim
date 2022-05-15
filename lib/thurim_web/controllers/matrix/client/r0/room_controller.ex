@@ -3,8 +3,8 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   use ThurimWeb.Controllers.MatrixController
   alias Thurim.Sync.SyncServer
   alias Thurim.Rooms
-  alias Thurim.RoomServer
   alias Thurim.Events
+  alias Thurim.User
 
   # Event shape:
   # {
@@ -55,6 +55,17 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
           type: event.type,
           state_key: event.state_key
         })
+    end
+  end
+
+  def joined_members(conn, %{"room_id" => room_id} = _params) do
+    sender = Map.fetch!(conn.assigns, :sender)
+
+    if SyncServer.user_in_room?(sender, room_id) do
+      response = User.joined_user_ids_in_room(room_id)
+      json(conn, %{"joined" => response})
+    else
+      json_error(conn, :m_forbidden)
     end
   end
 end

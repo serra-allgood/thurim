@@ -92,6 +92,24 @@ defmodule Thurim.User do
     |> Enum.map(fn {user_id, events} -> {user_id, List.last(events)} end)
   end
 
+  def joined_user_ids_in_room(room_id) do
+    from(e in Event,
+      where: e.room_id == ^room_id and e.type == "m.room.member",
+      select:
+        {e.state_key, fragment("content->'membership' as join_type"),
+         fragment("content->'displayname'"), fragment("content->'avatar_url'")},
+      order_by: e.origin_server_ts,
+      having: fragment("join_type = 'join'")
+    )
+    |> Repo.all()
+    |> Enum.group_by(
+      fn {user_id, _join_type, _displayname, _avatar_url} -> user_id end,
+      fn {_user_id, _join_type, displayname, avatar_url} ->
+        %{"displayname" => displayname, "avatar_url" => avatar_url}
+      end
+    )
+  end
+
   def extract_localpart(user_id) do
     [head | _tail] = String.split(user_id, ":", parts: 2)
     "@" <> localpart = head

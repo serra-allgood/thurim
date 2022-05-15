@@ -48,10 +48,12 @@ defmodule Thurim.MixProject do
       {:bcrypt_elixir, "~> 2.0"},
       {:corsica, "~> 1.1"},
       {:nebulex, "~> 2.3"},
+      {:decorator, "~> 1.4"},
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
       {:horde, "~> 0.8.7"},
-      {:timex, "~> 3.0"}
+      {:timex, "~> 3.0"},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 

@@ -20,6 +20,10 @@ defmodule Thurim.Sync.SyncServer do
     {:ok, state}
   end
 
+  def user_in_room?(mx_user_id, room_id) do
+    GenServer.call(__MODULE__, {:user_in_room?, mx_user_id, room_id})
+  end
+
   def add_device(mx_user_id, device_id) do
     GenServer.cast(__MODULE__, {:add_device, mx_user_id, device_id})
   end
@@ -43,6 +47,23 @@ defmodule Thurim.Sync.SyncServer do
   ###########################
   # Below is genserver impl #
   ###########################
+
+  # handle_call for :user_in_room?
+  def handle_call({:user_in_room?, mx_user_id, room_id}, _from, state) do
+    devices = Map.fetch!(state, mx_user_id)
+
+    first_device_id =
+      devices
+      |> Map.keys()
+      |> List.first()
+
+    reply =
+      Map.fetch!(devices, first_device_id)
+      |> SyncState.get_joined_room_ids()
+      |> Enum.member?(room_id)
+
+    {:reply, reply, state}
+  end
 
   # handle_cast for :add_device
   def handle_cast({:add_device, mx_user_id, device_id}, state) do

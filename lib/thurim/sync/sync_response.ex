@@ -1,7 +1,4 @@
 defmodule Thurim.Sync.SyncResponse do
-  alias Thurim.Sync.SyncResponse.InviteRooms
-  alias Thurim.Sync.SyncResponse.JoinRooms
-
   def new do
     %{
       "account_data" => [],

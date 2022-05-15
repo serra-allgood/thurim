@@ -4,8 +4,6 @@ defmodule Thurim.Sync.SyncState do
   alias Thurim.Sync.SyncResponse.InviteRooms
   alias Thurim.Sync.SyncResponse.JoinRooms
   alias Thurim.Events
-  alias Thurim.Events.EventData
-  alias Thurim.Events.StrippedEventData
 
   def start_link(_opts) do
     Agent.start_link(fn ->
@@ -31,7 +29,7 @@ defmodule Thurim.Sync.SyncState do
            %{
              "state" =>
                events
-               |> Enum.map(&map_state_events/1)
+               |> Enum.map(&Events.map_events/1)
            }}
         end)
         |> Enum.into(%{})
@@ -62,9 +60,22 @@ defmodule Thurim.Sync.SyncState do
     get(pid, full_state)
   end
 
+  def get_joined_room_ids(pid) do
+    Agent.get(pid, fn {_cursor, response} ->
+      Map.fetch!(response, "rooms")
+      |> Map.fetch!("join")
+      |> Map.keys()
+    end)
+  end
+
   def add_room_with_type(pid, sender, {room, join_type}) do
-    heroes = Events.heroes_for_room_id(room.room_id, sender) |> Enum.map(& &1.state_key)
-    state = Events.state_events_for_room_id(room.room_id) |> Enum.map(&map_state_events/1)
+    heroes = Events.heroes_for_room_id(room.room_id, sender)
+    timeline = Events.timeline_for_room_id(room.room_id)
+    timeline_ids = timeline |> Enum.map(& &1.id)
+
+    state =
+      Events.state_events_for_room_id(room.room_id)
+      |> Enum.filter(&(!Enum.member?(timeline_ids, &1.id)))
 
     Agent.update(pid, fn {cursor, response} ->
       {cursor,
@@ -81,7 +92,11 @@ defmodule Thurim.Sync.SyncState do
            &Map.put(
              &1,
              room.room_id,
-             empty_room(join_type, heroes: heroes, state: state)
+             empty_room(join_type,
+               heroes: heroes,
+               state: state |> Enum.map(fn event -> Events.map_events(event) end),
+               timeline: timeline |> Enum.map(fn event -> Events.map_events(event) end)
+             )
            )
          )
        )}
@@ -186,8 +201,6 @@ defmodule Thurim.Sync.SyncState do
     end)
   end
 
-  defp empty_room(join_type, attrs \\ [])
-
   defp empty_room("invite", _attrs) do
     InviteRooms.new()
   end
@@ -203,34 +216,11 @@ defmodule Thurim.Sync.SyncState do
   end
 
   defp empty_room("join", attrs) do
-    JoinRooms.new(attrs[:heroes], attrs[:state])
+    JoinRooms.new(attrs[:heroes], attrs[:state], attrs[:timeline])
   end
 
   defp empty_room(_join_type, _attrs) do
     %{}
-  end
-
-  defp map_state_events(event) do
-    cond do
-      Enum.member?(StrippedEventData.stripped_events(), event.type) ->
-        StrippedEventData.new(
-          event.content,
-          event.sender,
-          event.state_key,
-          event.type
-        )
-
-      true ->
-        EventData.new(
-          event.content,
-          event.event_id,
-          event.origin_server_ts,
-          event.room_id,
-          event.sender,
-          event.type,
-          event.state_key
-        )
-    end
   end
 
   defp new_cursor(events) do

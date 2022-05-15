@@ -12,10 +12,10 @@ defmodule Thurim.Devices do
       |> Base.url_encode64(padding: false, ignore: :whitespace)
       |> binary_part(0, @device_id_length)
 
-    if get_by_device_id(device_id, localpart) != nil do
-      generate_device_id(localpart)
-    else
+    if get_by_device_id(device_id, localpart) |> is_nil() do
       device_id
+    else
+      generate_device_id(localpart)
     end
   end
 
@@ -121,7 +121,8 @@ defmodule Thurim.Devices do
   end
 
   def delete_devices(devices) do
-    ids = devices |> Enum.map(&(&1.session_id))
+    ids = devices |> Enum.map(& &1.session_id)
+
     from(d in Device, where: d.session_id in ^ids)
     |> Repo.delete_all()
   end

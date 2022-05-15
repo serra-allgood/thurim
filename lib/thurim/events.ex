@@ -8,6 +8,8 @@ defmodule Thurim.Events do
 
   alias Thurim.Events.Event
   alias Thurim.Events.EventStateKey
+  alias Thurim.Events.EventData
+  alias Thurim.Events.StrippedEventData
 
   @default_power_levels %{
     "ban" => 50,
@@ -34,6 +36,37 @@ defmodule Thurim.Events do
     "users_default" => 0
   }
   @domain Application.get_env(:thurim, :matrix)[:domain]
+
+  def timeline_for_room_id(room_id) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      order_by: e.origin_server_ts
+    )
+    |> Repo.all()
+  end
+
+  def map_events(event) do
+    cond do
+      Enum.member?(StrippedEventData.stripped_events(), event.type) ->
+        StrippedEventData.new(
+          event.content,
+          event.sender,
+          event.state_key,
+          event.type
+        )
+
+      true ->
+        EventData.new(
+          event.content,
+          event.event_id,
+          event.origin_server_ts,
+          event.room_id,
+          event.sender,
+          event.type,
+          event.state_key
+        )
+    end
+  end
 
   def generate_event_id do
     "$" <> UUID.uuid4() <> ":" <> @domain
