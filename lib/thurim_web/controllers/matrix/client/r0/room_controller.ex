@@ -85,4 +85,15 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       json_error(conn, :m_forbidden)
     end
   end
+
+  def state(conn, %{"room_id" => room_id} = _params) do
+    sender = Map.fetch!(conn.assigns, :sender)
+
+    if SyncServer.user_in_room?(sender, room_id) do
+      response = Events.state_events_for_room_id(room_id) |> Events.map_events()
+      json(conn, response)
+    else
+      json_error(conn, :m_forbidden)
+    end
+  end
 end
