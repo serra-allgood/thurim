@@ -9,19 +9,19 @@ defmodule Thurim.Application do
     children = [
       # Start the Ecto repository
       Thurim.Repo,
+      {Thurim.AccessTokens.AccessTokenCache, []},
+      {ThurimWeb.AuthSessionCache, []},
+      {Horde.Registry, [name: Thurim.Registry, keys: :unique]},
+      {Horde.DynamicSupervisor, [name: Thurim.DistributedSupervisor, strategy: :one_for_one]},
+      {Thurim.Sync.SyncServer, []},
       # Start the Telemetry supervisor
       ThurimWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Thurim.PubSub},
       # Start the Endpoint (http/https)
-      ThurimWeb.Endpoint,
+      ThurimWeb.Endpoint
       # Start a worker by calling: Thurim.Worker.start_link(arg)
       # {Thurim.Worker, arg}
-      {Thurim.AccessTokens.AccessTokenCache, []},
-      {ThurimWeb.AuthSessionCache, []},
-      {Horde.Registry, [name: Thurim.Registry, keys: :unique]},
-      {Horde.DynamicSupervisor, [name: Thurim.DistributedSupervisor, strategy: :one_for_one]},
-      {Thurim.Sync.SyncServer, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

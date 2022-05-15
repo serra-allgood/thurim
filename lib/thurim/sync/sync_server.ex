@@ -59,7 +59,7 @@ defmodule Thurim.Sync.SyncServer do
         device.device_id => new_sync_state(rooms_with_mx_user_id(mx_user_id))
       })
 
-    {:noreplay, new_state}
+    {:noreply, new_state}
   end
 
   # handle_cast for :add_room
@@ -161,7 +161,6 @@ defmodule Thurim.Sync.SyncServer do
       {mx_user_id,
        account.devices
        |> map_devices_to_sync_state(mx_user_id)}
-      |> Enum.into(%{})
     end)
     |> Enum.into(%{})
   end
@@ -171,6 +170,7 @@ defmodule Thurim.Sync.SyncServer do
     |> Enum.map(fn device ->
       {device.device_id, rooms_with_mx_user_id(mx_user_id) |> new_sync_state()}
     end)
+    |> Enum.into(%{})
   end
 
   defp rooms_with_mx_user_id(mx_user_id) do

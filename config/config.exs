@@ -19,11 +19,11 @@ config :thurim, :matrix,
 
 config :thurim, ThurimWeb.AuthSessionCache,
   # 10 minutes
-  gc_interval: 60 * 60 * 10
+  gc_interval: :timer.minutes(10)
 
 config :thurim, Thurim.AccessToken.AccessTokenCache,
   # 24 hrs
-  gc_interval: 86_400
+  gc_interval: :timer.hours(24)
 
 config :thurim,
   ecto_repos: [Thurim.Repo],

@@ -35,7 +35,7 @@ defmodule Thurim.MixProject do
     [
       {:phoenix, "~> 1.6.8"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto_sql, "~> 3.6"},
+      {:ecto_sql, "~> 3.8"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_dashboard, "~> 0.6"},
       {:swoosh, "~> 1.3"},
@@ -47,7 +47,7 @@ defmodule Thurim.MixProject do
       {:ecto_psql_extras, "~> 0.2"},
       {:bcrypt_elixir, "~> 2.0"},
       {:corsica, "~> 1.1"},
-      {:nebulex, "~> 1.2.0"},
+      {:nebulex, "~> 2.3"},
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
       {:horde, "~> 0.8.7"},

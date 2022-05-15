@@ -8,11 +8,13 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
 
   @matrix_config Application.get_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flows]
+  @cache_ttl 60
 
   def init(options), do: options
 
   def call(conn, _options) do
     auth = Map.get(conn.params, "auth")
+
     if valid_auth?(auth) do
       conn
       |> check_stage(auth)
@@ -26,7 +28,8 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   end
 
   defp set_session(session) do
-    AuthSessionCache.set(session.id, session)
+    AuthSessionCache.put(session.id, session, ttl: @cache_ttl)
+    session
   end
 
   defp get_session(session_id) do
@@ -75,6 +78,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   end
 
   defp pass_or_challenge(conn, session \\ nil)
+
   defp pass_or_challenge(conn, session) when not is_nil(session) do
     conn
     |> Conn.put_status(401)
@@ -86,6 +90,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
     })
     |> Conn.halt()
   end
+
   defp pass_or_challenge(conn, _session) do
     auth = Map.get(conn.params, "auth")
     session = get_session(auth["session"])

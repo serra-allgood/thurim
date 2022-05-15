@@ -40,10 +40,15 @@ defmodule ThurimWeb.PresenceControllerTest do
       conn
       |> add_basic_headers()
       |> put_req_header("authorization", "Bearer #{access_token}")
-      |> put(Routes.presence_path(conn, :update, Thurim.User.mx_user_id("jump_spider")), %{"presence" => "online", "status_msg" => "I am here"})
+      |> put(Routes.presence_path(conn, :update, Thurim.User.mx_user_id("jump_spider")), %{
+        "presence" => "online",
+        "status_msg" => "I am here"
+      })
       |> json_response(200)
 
-      %{presence: presence, status_msg: status_msg} = Presence.get_user_presence(Thurim.User.mx_user_id("jump_spider"))
+      %{presence: presence, status_msg: status_msg} =
+        Presence.get_user_presence(Thurim.User.mx_user_id("jump_spider"))
+
       assert presence == "online"
       assert status_msg == "I am here"
     end
@@ -66,7 +71,10 @@ defmodule ThurimWeb.PresenceControllerTest do
       conn
       |> add_basic_headers()
       |> put_req_header("authorization", "Bearer #{access_token}")
-      |> put(Routes.presence_path(conn, :update, Thurim.User.mx_user_id("jump_spider")), %{"presence" => "online", "status_msg" => "I am here"})
+      |> put(Routes.presence_path(conn, :update, Thurim.User.mx_user_id("jump_spider")), %{
+        "presence" => "online",
+        "status_msg" => "I am here"
+      })
       |> json_response(200)
 
       response =

@@ -18,7 +18,7 @@ defmodule Thurim.AccessTokens do
         nil
 
       access_token ->
-        AccessTokenCache.set(access_token.id, Repo.preload(access_token, [:device, :account]),
+        AccessTokenCache.put(access_token.id, Repo.preload(access_token, [:device, :account]),
           ttl: @cache_ttl
         )
 
@@ -35,7 +35,7 @@ defmodule Thurim.AccessTokens do
            create_access_token(%{device_session_id: device_session_id, localpart: localpart}),
          access_token <- Repo.preload(access_token, [:device, :account]),
          signed_access_token <- sign(access_token) do
-      AccessTokenCache.set(access_token.id, access_token, ttl: @cache_ttl)
+      AccessTokenCache.put(access_token.id, access_token, ttl: @cache_ttl)
       {:ok, signed_access_token}
     end
   end
@@ -146,7 +146,7 @@ defmodule Thurim.AccessTokens do
   end
 
   def delete_access_tokens(access_tokens) do
-    ids = access_tokens |> Enum.map(&(&1.id))
+    ids = access_tokens |> Enum.map(& &1.id)
     ids |> Enum.each(&AccessTokenCache.delete/1)
 
     from(a in AccessToken, where: a.id in ^ids)

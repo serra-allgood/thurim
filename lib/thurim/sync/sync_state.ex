@@ -35,7 +35,7 @@ defmodule Thurim.Sync.SyncState do
   end
 
   def drain(pid, cursor) do
-    origin_ts = String.to_integer(cursor)
+    origin_server_ts = String.to_integer(cursor)
 
     Agent.update(pid, fn state ->
       # TODO - device_lists, device_one_time_keys_count, presence
@@ -43,9 +43,9 @@ defmodule Thurim.Sync.SyncState do
         state,
         "account_data",
         Map.fetch!(state, "account_data")
-        |> Enum.filter(&(&1["origin_ts"] > origin_ts))
+        |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))
       )
-      |> Map.put("next_batch", Integer.to_string(origin_ts))
+      |> Map.put("next_batch", Integer.to_string(origin_server_ts))
       |> Map.put(
         "rooms",
         Map.fetch!(state, "rooms")
@@ -55,7 +55,7 @@ defmodule Thurim.Sync.SyncState do
            |> Enum.map(fn {key, value} ->
              case join_type do
                "invite" ->
-                 {key, value |> Enum.filter(&(&1["origin_ts"] > origin_ts))}
+                 {key, value |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))}
 
                "knock" ->
                  {key, value}
@@ -66,13 +66,13 @@ defmodule Thurim.Sync.SyncState do
                "join" ->
                  case key do
                    "account_data" ->
-                     {key, value |> Enum.filter(&(&1["origin_ts"] > origin_ts))}
+                     {key, value |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))}
 
                    "ephemereal" ->
-                     {key, value |> Enum.filter(&(&1["origin_ts"] > origin_ts))}
+                     {key, value |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))}
 
                    "state" ->
-                     {key, value |> Enum.filter(&(&1["origin_ts"] > origin_ts))}
+                     {key, value |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))}
 
                    "summary" ->
                      {key,
@@ -85,7 +85,8 @@ defmodule Thurim.Sync.SyncState do
                    "timeline" ->
                      {key,
                       %{
-                        "events" => value |> Enum.filter(&(&1["origin_ts"] > origin_ts)),
+                        "events" =>
+                          value |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts)),
                         "limited" => false,
                         "prev_batch" => state["next_batch"]
                       }}
