@@ -127,8 +127,8 @@ defmodule Thurim.Rooms do
       if initial_state do
         Enum.with_index(initial_state, 6)
         |> Enum.reduce(multi, fn {state, index}, multi ->
-          Multi.run(multi, :create_initial_state, fn _repo, _changes ->
-            Events.create_event(state, "initial_state", index)
+          Multi.run(multi, "create_initial_state_#{index}", fn _repo, _changes ->
+            Events.create_event(Map.merge(attrs, state), "initial_state", index)
           end)
         end)
       else

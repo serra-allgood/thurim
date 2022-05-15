@@ -152,9 +152,9 @@ defmodule Thurim.Events do
   end
 
   def create_event(attrs, "initial_state", depth) do
-    {:ok, event_state_key} = Map.get(attrs, "event_state_key", "")
+    event_state_key = Map.get(attrs, "event_state_key", nil)
 
-    Map.merge(attrs, %{"state_key" => event_state_key.state_key, "depth" => depth})
+    Map.merge(attrs, %{"state_key" => event_state_key, "depth" => depth})
     |> create_event()
   end
 

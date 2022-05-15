@@ -8,7 +8,6 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
 
   @matrix_config Application.get_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flows]
-  @cache_ttl 60
 
   def init(options), do: options
 
@@ -28,7 +27,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   end
 
   defp set_session(session) do
-    AuthSessionCache.put(session.id, session, ttl: @cache_ttl)
+    AuthSessionCache.put(session.id, session)
     session
   end
 

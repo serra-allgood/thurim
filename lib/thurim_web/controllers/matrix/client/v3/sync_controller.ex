@@ -23,13 +23,14 @@ defmodule ThurimWeb.Matrix.Client.V3.SyncController do
         :error -> nil
       end
 
-    if Map.get(params, "timeout", 0) == 0 do
-      case SyncServer.build_sync(sender, device, filter, params) do
-        {:ok, response} -> json(conn, response)
-        :error -> json_error(conn, :m_unknown_error)
-      end
-    else
-      json(conn, %{})
+    timeout = Map.get(params, "timeout", "0") |> String.to_integer()
+
+    case SyncServer.build_sync(sender, device, filter, timeout, params) do
+      :error ->
+        json_error(conn, :m_unknown_error)
+
+      response ->
+        json(conn, response)
     end
   end
 end

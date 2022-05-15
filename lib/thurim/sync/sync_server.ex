@@ -4,6 +4,7 @@ defmodule Thurim.Sync.SyncServer do
   alias Thurim.User
   alias Thurim.Rooms
   alias Thurim.Sync.SyncState
+  alias Thurim.Sync.SyncResponse
 
   # Sync state looks like the following:
   # %{
@@ -32,7 +33,11 @@ defmodule Thurim.Sync.SyncServer do
   end
 
   def build_sync(mx_user_id, device, filter, timeout, params) do
-    GenServer.call(__MODULE__, {:build_sync, mx_user_id, device, filter, timeout, params})
+    GenServer.call(
+      __MODULE__,
+      {:build_sync, mx_user_id, device, filter, timeout, params},
+      timeout + 5000
+    )
   end
 
   ###########################
@@ -64,66 +69,144 @@ defmodule Thurim.Sync.SyncServer do
 
   # handle_cast for :add_room
   def handle_cast({:add_room, room, mx_user_id}, state) do
-    new_state =
-      Map.put(
-        state,
-        mx_user_id,
-        Map.fetch!(state, mx_user_id)
-        |> Enum.map(fn {device_id, pid} ->
-          SyncState.add_room_with_type(pid, mx_user_id, {room, "join"})
-          {device_id, pid}
-        end)
-        |> Enum.into(%{})
-      )
+    Map.fetch!(state, mx_user_id)
+    |> Enum.each(fn {_device_id, sync_state} ->
+      SyncState.add_room_with_type(sync_state, mx_user_id, {room, "join"})
+    end)
 
-    {:noreply, new_state}
+    {:noreply, state}
   end
 
   # handle_call for :build_sync
+  # TODO - implement filtering
   def handle_call(
-        {:build_sync, mx_user_id, device, filter, timeout, params = %{"since" => since}},
-        _from,
+        {:build_sync, mx_user_id, device, filter, timeout, %{"since" => since} = params},
+        from,
         state
       )
       when is_nil(filter) and not is_nil(since) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
 
-    reply =
-      Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id) |> SyncState.get(full_state)
+    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    cursor = SyncState.get_cursor(sync_state)
 
-    {:reply}
+    {cursor, reply} =
+      if cursor != since do
+        SyncState.get_since(sync_state, since, full_state)
+      else
+        SyncState.get(sync_state, full_state)
+      end
+
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, filter, timeout, params}
+      )
+
+      {:noreply, state}
+    else
+      {:reply, reply, drain_state(state, mx_user_id, device, reply, cursor)}
+    end
   end
 
   def handle_call(
         {:build_sync, mx_user_id, device, filter, timeout, params = %{"since" => since}},
-        _from,
+        from,
         state
       )
       when not is_nil(since) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
+    full_state = Map.get(params, "full_state", false)
 
-    reply = %{}
+    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    cursor = SyncState.get_cursor(sync_state)
 
-    {:reply, reply, drain_state(state, mx_user_id, device, reply)}
+    {cursor, reply} =
+      if cursor != since do
+        SyncState.get_since(sync_state, since, full_state)
+      else
+        SyncState.get(sync_state, full_state)
+      end
+
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, filter, timeout, params}
+      )
+
+      {:noreply, state}
+    else
+      {:reply, reply, drain_state(state, mx_user_id, device, reply, cursor)}
+    end
   end
 
-  def handle_call({:build_sync, mx_user_id, device, filter, timeout, params}, _from, state)
+  # TODO - implement filtering
+  def handle_call({:build_sync, mx_user_id, device, filter, timeout, params}, from, state)
       when is_nil(filter) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
 
-    reply = build_response(state, mx_user_id, device, full_state)
+    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    {cursor, reply} = SyncState.get(sync_state, full_state)
 
-    {:reply, reply, drain_state(state, mx_user_id, device, reply)}
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, filter, timeout, params}
+      )
+
+      {:noreply, state}
+    else
+      {:reply, reply, drain_state(state, mx_user_id, device, reply, cursor)}
+    end
   end
 
-  def handle_call({:build_sync, mx_user_id, device, filter, params}, _from, state) do
+  def handle_call({:build_sync, mx_user_id, device, _filter, timeout, params}, from, state) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
+    full_state = Map.get(params, "full_state", false)
 
-    reply = %{}
+    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    {cursor, reply} = SyncState.get(sync_state, full_state)
 
-    {:reply, reply, drain_state(state, mx_user_id, device, reply)}
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, _filter, timeout, params}
+      )
+
+      {:noreply, state}
+    else
+      {:reply, reply, drain_state(state, mx_user_id, device, reply, cursor)}
+    end
+  end
+
+  # TODO - implement filtering
+  def handle_info({:check_sync, from, mx_user_id, device, filter, timeout, params}, state) do
+    since = Map.get(params, "since", nil)
+    full_state = Map.get(params, "full_state", false)
+
+    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    {cursor, reply} = SyncState.get(sync_state, full_state)
+
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, filter, timeout - 1000, params}
+      )
+
+      {:noreply, state}
+    else
+      GenServer.reply(from, reply)
+
+      {:noreply, drain_state(state, mx_user_id, device, reply, cursor)}
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 
   defp handle_presence(set_presence, mx_user_id) do
@@ -143,16 +226,10 @@ defmodule Thurim.Sync.SyncServer do
     end
   end
 
-  defp build_response(state, account, device, full_state) do
-    Map.get(state, account.localpart, %{})
-    |> Map.fetch!(device.device_id)
-    |> SyncState.get(full_state)
-  end
-
-  defp drain_state(state, mx_user_id, device, reply) do
+  defp drain_state(state, mx_user_id, device, reply, cursor) do
     Map.fetch!(state, mx_user_id)
     |> Map.fetch!(device.device_id)
-    |> SyncState.drain(reply["cursor"])
+    |> SyncState.drain(cursor)
 
     state
   end
@@ -182,7 +259,8 @@ defmodule Thurim.Sync.SyncServer do
     |> Enum.map(fn room ->
       {room,
        User.user_ids_in_room(room)
-       |> Enum.filter(fn {user_id, _join_type} -> user_id == mx_user_id end)}
+       |> Enum.filter(fn {user_id, _join_type} -> user_id == mx_user_id end)
+       |> List.first()}
     end)
     |> Enum.map(fn {room, {_user_id, join_type}} -> {room, join_type} end)
   end

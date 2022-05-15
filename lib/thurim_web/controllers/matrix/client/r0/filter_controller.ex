@@ -17,4 +17,13 @@ defmodule ThurimWeb.Matrix.Client.R0.FilterController do
       {:error, changeset} -> send_changeset_error_to_json(conn, changeset)
     end
   end
+
+  def show(conn, params) do
+    account = Map.fetch!(conn.assigns, :current_account)
+
+    case Filters.get_by(id: params["filter_id"], localpart: account.localpart) do
+      nil -> json_error(conn, :m_unknown)
+      filter -> json(conn, filter.filter)
+    end
+  end
 end

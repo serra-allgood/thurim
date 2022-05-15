@@ -10,17 +10,13 @@ defmodule Thurim.AccessTokens do
   alias Phoenix.Token
   alias Thurim.Repo
 
-  @cache_ttl 60 * 60
-
   def get_signed_token(access_token_id) do
     case AccessTokenCache.get(access_token_id) || Repo.get(AccessToken, access_token_id) do
       nil ->
         nil
 
       access_token ->
-        AccessTokenCache.put(access_token.id, Repo.preload(access_token, [:device, :account]),
-          ttl: @cache_ttl
-        )
+        AccessTokenCache.put(access_token.id, Repo.preload(access_token, [:device, :account]))
 
         sign(access_token)
     end
@@ -35,7 +31,7 @@ defmodule Thurim.AccessTokens do
            create_access_token(%{device_session_id: device_session_id, localpart: localpart}),
          access_token <- Repo.preload(access_token, [:device, :account]),
          signed_access_token <- sign(access_token) do
-      AccessTokenCache.put(access_token.id, access_token, ttl: @cache_ttl)
+      AccessTokenCache.put(access_token.id, access_token)
       {:ok, signed_access_token}
     end
   end

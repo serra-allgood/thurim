@@ -23,7 +23,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     case result do
       {:ok, room} ->
         SyncServer.add_room(room, sender)
-        json(conn, %{room_id: room.room_id})
+        json(conn, %{room_id: room["room_id"]})
 
       {:error, error} ->
         json_error(conn, error)
