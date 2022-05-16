@@ -2,7 +2,6 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
   alias Thurim.Sync.SyncServer
-  alias Thurim.Filters
 
   # Shape of params:
   # {
@@ -16,12 +15,7 @@ defmodule ThurimWeb.Matrix.Client.R0.SyncController do
     device = Map.get(conn.assigns, :current_device)
     account = Map.get(conn.assigns, :current_account)
     sender = Map.get(conn.assigns, :sender)
-
-    filter =
-      case Map.fetch(params, "filter") do
-        {:ok, filter_id} -> Filters.get_by(id: filter_id, localpart: account.localpart)
-        :error -> nil
-      end
+    filter = Map.get(params, "filter", nil) |> get_filter(account)
 
     timeout = Map.get(params, "timeout", "0") |> String.to_integer()
 

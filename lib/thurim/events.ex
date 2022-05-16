@@ -126,6 +126,93 @@ defmodule Thurim.Events do
     |> Repo.all()
   end
 
+  def events_in_room_id(room_id, direction, filter, limit, from, to)
+      when is_nil(filter) and is_nil(to) do
+    base = from(e in Event, where: e.room_id == ^room_id, limit: ^limit)
+
+    query =
+      if direction == "f" do
+        from(e in base, where: e.origin_server_ts >= ^from, order_by: e.origin_server_ts)
+      else
+        from(e in base, where: e.origin_server_ts <= ^from, order_by: [desc: e.origin_server_ts])
+      end
+
+    # TODO - work on needed state
+    events = query |> Repo.all()
+
+    end_ts =
+      if direction == "f" do
+        List.last(events).origin_server_ts
+      else
+        List.first(events).origin_server_ts
+      end
+
+    is_end =
+      if direction == "f" do
+        from(e in base, where: e.origin_server_ts > ^end_ts) |> Repo.all() |> Enum.empty?()
+      else
+        from(e in base, where: e.origin_server_ts < ^end_ts) |> Repo.all() |> Enum.empty?()
+      end
+
+    if is_end do
+      {events, [], nil}
+    else
+      {events, [], end_ts}
+    end
+  end
+
+  def events_in_room_id(room_id, direction, filter, limit, from, to) when is_nil(filter) do
+    base = from(e in Event, where: e.room_id == ^room_id, limit: ^limit)
+
+    query =
+      if direction == "f" do
+        from(e in base,
+          where: e.origin_server_ts >= ^from,
+          where: e.origin_server_ts <= ^to,
+          order_by: e.origin_server_ts
+        )
+      else
+        from(e in base,
+          where: e.origin_server_ts <= ^from,
+          where: e.origin_server_ts >= ^to,
+          order_by: [desc: e.origin_server_ts]
+        )
+      end
+
+    # TODO - work on needed state
+    events = query |> Repo.all()
+
+    end_ts =
+      if direction == "f" do
+        List.last(events).origin_server_ts
+      else
+        List.first(events).origin_server_ts
+      end
+
+    is_end =
+      if direction == "f" do
+        from(e in base, where: e.origin_server_ts > ^end_ts) |> Repo.all() |> Enum.empty?()
+      else
+        from(e in base, where: e.origin_server_ts < ^end_ts) |> Repo.all() |> Enum.empty?()
+      end
+
+    if is_end do
+      {events, [], nil}
+    else
+      {events, [], end_ts}
+    end
+  end
+
+  def events_in_room_id(room_id, direction, _filter, limit, from, to) when is_nil(to) do
+    # TODO - implement filtering
+    events_in_room_id(room_id, direction, nil, limit, from, to)
+  end
+
+  def events_in_room_id(room_id, direction, _filter, limit, from, to) do
+    # TODO - implement filtering
+    events_in_room_id(room_id, direction, nil, limit, from, to)
+  end
+
   def find_next_timestamp(timestamp) do
     from(e in Event,
       where: e.origin_server_ts >= ^timestamp,
