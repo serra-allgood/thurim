@@ -82,7 +82,7 @@ defmodule Thurim.Sync.SyncState do
        Map.put(
          response,
          "next_batch",
-         new_cursor(state)
+         new_cursor(timeline)
        )
        |> Map.put(
          "rooms",
@@ -224,7 +224,7 @@ defmodule Thurim.Sync.SyncState do
   end
 
   defp new_cursor(events) do
-    Enum.map(events, & &1["origin_server_ts"])
+    Enum.map(events, & &1.origin_server_ts)
     |> Enum.filter(fn ts -> ts end)
     |> Enum.max(&>=/2, fn -> 0 end)
     |> Integer.to_string()

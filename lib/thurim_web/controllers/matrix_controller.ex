@@ -23,16 +23,21 @@ defmodule ThurimWeb.Controllers.MatrixController do
       end
 
       defp get_filter(filter, account) do
-        if filter != nil and String.starts_with?(filter, "{") do
-          case Jason.decode(filter) do
-            {:ok, filter_content} -> %Filter{filter: filter_content}
-            {:error, _} -> nil
-          end
-        else
-          case Filters.get_by(id: filter, localpart: account.localpart) do
-            nil -> nil
-            filter -> filter
-          end
+        cond do
+          filter == nil ->
+            nil
+
+          String.starts_with?(filter, "{") ->
+            case Jason.decode(filter) do
+              {:ok, filter_content} -> %Filter{filter: filter_content}
+              {:error, _} -> nil
+            end
+
+          true ->
+            case Filters.get_by(id: filter, localpart: account.localpart) do
+              nil -> nil
+              filter -> filter
+            end
         end
       end
     end
