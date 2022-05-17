@@ -69,6 +69,7 @@ defmodule ThurimWeb.Router do
         get "/rooms/:room_id/members", RoomController, :members
         get "/rooms/:room_id/state", RoomController, :state
         get "/rooms/:room_id/state/:event_type/:state_key", RoomController, :state_event
+        put "/rooms/:room_id/state/:event_type/:state_key", RoomController, :create_state_event
         get "/rooms/:room_id/messages", RoomController, :messages
 
         post "/keys/query", KeysController, :query

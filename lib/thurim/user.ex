@@ -14,6 +14,7 @@ defmodule Thurim.User do
   alias Thurim.User.Profile
   alias Thurim.User.AccountData
   alias Thurim.PushRules
+  alias Thurim.Events
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
@@ -27,6 +28,37 @@ defmodule Thurim.User do
 
   def generate_localpart() do
     UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
+  end
+
+  def permission_to_create_event?(sender, room_id, event_type, is_state_event) do
+    power_level_event =
+      Events.latest_state_event_of_type_in_room_id(room_id, "m.room.power_levels", "")
+
+    user_power_level = get_power_level(sender, room_id, power_level_event.content)
+
+    minimum_power_level =
+      if is_state_event do
+        Map.get(power_level_event.content, "events", %{})
+        |> Map.get(event_type, Map.get(power_level_event.content, "state_default", 50))
+      else
+        Map.get(power_level_event.content, "events", %{})
+        |> Map.get(event_type, Map.get(power_level_event.content, "events_default", 0))
+      end
+
+    user_power_level >= minimum_power_level
+  end
+
+  def get_power_level(mx_user_id, room_id, power_levels) do
+    room_creation = Events.latest_state_event_of_type_in_room_id(room_id, "m.room.create", "")
+    is_room_creator = room_creation.content["creator"] == mx_user_id
+
+    if is_room_creator do
+      100
+    else
+      # Check if mx_user_id is listed under users key, otherwise default to users_default, and default to 0 if users_default is not present
+      Map.get(power_levels, "users", %{})
+      |> Map.get(mx_user_id, Map.get(power_levels, "users_default", 0))
+    end
   end
 
   def create_profile(params \\ %{}) do

@@ -311,6 +311,21 @@ defmodule Thurim.Events do
     |> create_event()
   end
 
+  def create_event(%{"room_id" => room_id} = attrs, type, state_key) when is_nil(state_key) do
+    new_depth = Map.get("depth", attrs, get_last_depth(room_id) + 1)
+
+    Map.merge(%{"depth" => new_depth, "type" => type}, attrs)
+    |> create_event()
+  end
+
+  def create_event(%{"room_id" => room_id} = attrs, type, state_key) do
+    new_depth = Map.get("depth", attrs, get_last_depth(room_id) + 1)
+    {:ok, _} = find_or_create_state_key(state_key)
+
+    Map.merge(%{"depth" => new_depth, "type" => type, "state_key" => state_key}, attrs)
+    |> create_event()
+  end
+
   def create_event(params, "m.room.create") do
     {:ok, event_state_key} = find_or_create_state_key("")
 
@@ -391,6 +406,16 @@ defmodule Thurim.Events do
       }
     })
     |> create_event()
+  end
+
+  def get_last_depth(room_id) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      order_by: [desc: e.depth],
+      select: e.depth
+    )
+    |> first
+    |> Repo.one()
   end
 
   def create_event(attrs \\ %{}) do

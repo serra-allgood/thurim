@@ -126,6 +126,32 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     end
   end
 
+  def create_state_event(
+        conn,
+        %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
+      ) do
+    sender = Map.fetch!(conn.assigns, :sender)
+
+    if User.permission_to_create_event?(sender, room_id, event_type, true) do
+      case Events.create_event(
+             %{
+               "sender" => sender,
+               "content" => conn.body_params,
+               "room_id" => room_id,
+               "type" => event_type,
+               "state_key" => state_key
+             },
+             event_type,
+             state_key
+           ) do
+        {:ok, event} -> json(conn, %{"event_id" => event.event_id})
+        {:error, _name, changeset, _changes} -> send_changeset_error_to_json(conn, changeset)
+      end
+    else
+      json_error(conn, :m_forbidden)
+    end
+  end
+
   def messages(conn, %{"room_id" => room_id, "from" => from, "dir" => dir} = params) do
     account = Map.fetch!(conn.assigns, :current_account)
     sender = Map.fetch!(conn.assigns, :sender)

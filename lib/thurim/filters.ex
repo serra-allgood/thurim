@@ -5,7 +5,6 @@ defmodule Thurim.Filters do
 
   import Ecto.Query, warn: false
   alias Thurim.Repo
-
   alias Thurim.Filters.Filter
 
   def get_by(attrs \\ []) do
