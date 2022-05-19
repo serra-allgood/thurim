@@ -63,8 +63,8 @@ defmodule ThurimWeb.Errors do
   defp status_code(:m_missing_token), do: 401
   defp status_code(:m_unknown_token), do: 401
   defp status_code(:m_not_found), do: 404
-  defp status_code(:p_internal_error), do: 403
-  defp status_code(:p_not_implemented), do: 500
+  defp status_code(:thurim_internal_error), do: 500
+  defp status_code(:thurim_not_implemented), do: 500
   defp status_code(:m_unsupported_room_version), do: 400
   defp status_code(_), do: 500
 
@@ -78,7 +78,7 @@ defmodule ThurimWeb.Errors do
   defp message(:m_missing_token), do: "Access token missing"
   defp message(:m_unknown_token), do: "Unknown access token"
   defp message(:m_not_found), do: "Not found"
-  defp message(:p_internal_error), do: "Thurim internal error"
-  defp message(:p_not_implemented), do: "API endpoint not yet implemented"
+  defp message(:thurim_internal_error), do: "Thurim internal error"
+  defp message(:thurim_not_implemented), do: "API endpoint not yet implemented"
   defp message(_), do: "Unknown Error"
 end

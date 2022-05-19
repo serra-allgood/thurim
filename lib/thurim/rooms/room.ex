@@ -3,6 +3,7 @@ defmodule Thurim.Rooms.Room do
   import Ecto.Changeset
   alias Thurim.Rooms.RoomAlias
   alias Thurim.Events.Event
+  alias Thurim.Rooms
 
   @default_room_version Application.get_env(:thurim, :matrix)[:default_room_version]
 
@@ -22,7 +23,18 @@ defmodule Thurim.Rooms.Room do
   def changeset(room, attrs) do
     room
     |> cast(attrs, [:room_id, :room_version, :published])
+    |> set_defaults(room_id: Rooms.generate_room_id())
     |> validate_required([:room_id, :room_version])
     |> unique_constraint(:room_id)
+  end
+
+  defp set_defaults(changeset, defaults) do
+    Enum.reduce(defaults, changeset, fn {field, value}, changeset ->
+      if get_field(changeset, field) |> is_nil() do
+        put_change(changeset, field, value)
+      else
+        changeset
+      end
+    end)
   end
 end

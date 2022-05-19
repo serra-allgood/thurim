@@ -29,7 +29,7 @@ defmodule Thurim.Sync.SyncState do
            %{
              "state" =>
                events
-               |> Enum.map(&Events.map_events/1)
+               |> Enum.map(&Events.map_event/1)
            }}
         end)
         |> Enum.into(%{})
@@ -94,12 +94,56 @@ defmodule Thurim.Sync.SyncState do
              room.room_id,
              empty_room(join_type,
                heroes: heroes,
-               state: state |> Enum.map(fn event -> Events.map_events(event) end),
-               timeline: timeline |> Enum.map(fn event -> Events.map_events(event) end)
+               state: state |> Enum.map(fn event -> Events.map_event(event) end),
+               timeline: timeline |> Enum.map(fn event -> Events.map_event(event) end)
              )
            )
          )
        )}
+    end)
+  end
+
+  def append_state(pid, room_id, event) do
+    Agent.update(pid, fn {_cursor, response} ->
+      Map.put(
+        response,
+        "rooms",
+        Map.fetch!(response, "rooms")
+        |> Map.update!("join", fn joined_rooms ->
+          if Enum.member?(Map.keys(joined_rooms), room_id) do
+            Map.put(
+              joined_rooms,
+              room_id,
+              Map.fetch!(joined_rooms, room_id)
+              |> Map.update!("state", fn state -> state ++ [Events.map_event(event)] end)
+            )
+          else
+            joined_rooms
+          end
+        end)
+      )
+    end)
+  end
+
+  def append_timeline(pid, room_id, event) do
+    Agent.update(pid, fn {_cursor, response} ->
+      Map.put(
+        response,
+        "rooms",
+        Map.fetch!(response, "rooms")
+        |> Map.update!("join", fn joined_rooms ->
+          if Enum.member?(Map.keys(joined_rooms), room_id) do
+            Map.put(
+              joined_rooms,
+              room_id,
+              Map.fetch!(joined_rooms, room_id)
+              |> Map.update!("timeline", fn timeline -> timeline ++ [Events.map_event(event)] end)
+            )
+          else
+            joined_rooms
+          end
+        end)
+      )
     end)
   end
 

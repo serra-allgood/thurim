@@ -8,12 +8,12 @@ defmodule Thurim.Events.Event do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "events" do
     field :auth_event_ids, {:array, :binary_id}, default: []
-    field :event_id, :string, autogenerate: {Events, :generate_event_id, []}
+    field :event_id, :string
     field :depth, :integer
     field :type, :string
     field :content, :map
     field :sender, :string
-    field :origin_server_ts, :integer, autogenerate: {__MODULE__, :generate_origin_server_ts, []}
+    field :origin_server_ts, :integer
     belongs_to :room, Room, references: :room_id, type: :string, foreign_key: :room_id
 
     belongs_to :event_state_key, EventStateKey,
@@ -42,6 +42,10 @@ defmodule Thurim.Events.Event do
       ],
       empty_values: []
     )
+    |> set_defaults(
+      origin_server_ts: generate_origin_server_ts(),
+      event_id: Events.generate_event_id()
+    )
     |> validate_required([
       :depth,
       :type,
@@ -59,15 +63,15 @@ defmodule Thurim.Events.Event do
     Timex.now() |> DateTime.to_unix(:millisecond)
   end
 
-  # defp set_defaults(changeset, defaults) do
-  #   Enum.reduce(defaults, changeset, fn {field, value}, changeset ->
-  #     if get_field(changeset, field) |> is_nil() do
-  #       put_change(changeset, field, value)
-  #     else
-  #       changeset
-  #     end
-  #   end)
-  # end
+  defp set_defaults(changeset, defaults) do
+    Enum.reduce(defaults, changeset, fn {field, value}, changeset ->
+      if get_field(changeset, field) |> is_nil() do
+        put_change(changeset, field, value)
+      else
+        changeset
+      end
+    end)
+  end
 
   # defp validate_not_nil(changeset, fields) do
   #   Enum.reduce(fields, changeset, fn field, changeset ->

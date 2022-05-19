@@ -5,6 +5,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   alias Thurim.Rooms
   alias Thurim.Events
   alias Thurim.User
+  alias Thurim.Transactions
 
   # Event shape:
   # {
@@ -21,12 +22,12 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       |> Rooms.create_room()
 
     case result do
-      {:ok, room} ->
+      {:ok, %{room: room} = _changes} ->
         SyncServer.add_room(room, sender)
-        json(conn, %{room_id: room["room_id"]})
+        json(conn, %{room_id: room.room_id})
 
-      {:error, error} ->
-        json_error(conn, error)
+      {:error, _name, changeset, _changes} ->
+        send_changeset_error_to_json(conn, changeset)
     end
   end
 
@@ -78,7 +79,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     if SyncServer.user_in_room?(sender, room_id) do
       response =
         User.membership_events_in_room(room_id, membership, not_membership, at_time)
-        |> Events.map_events()
+        |> Enum.map(&Events.map_event/1)
 
       json(conn, %{"chunk" => response})
     else
@@ -90,7 +91,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     sender = Map.fetch!(conn.assigns, :sender)
 
     if SyncServer.user_in_room?(sender, room_id) do
-      response = Events.state_events_for_room_id(room_id) |> Events.map_events()
+      response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_event/1)
       json(conn, response)
     else
       json_error(conn, :m_forbidden)
@@ -144,8 +145,12 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
              event_type,
              state_key
            ) do
-        {:ok, event} -> json(conn, %{"event_id" => event.event_id})
-        {:error, _name, changeset, _changes} -> send_changeset_error_to_json(conn, changeset)
+        {:ok, event} ->
+          SyncServer.append_state_event(room_id, event)
+          json(conn, %{"event_id" => event.event_id})
+
+        {:error, _name, changeset, _changes} ->
+          send_changeset_error_to_json(conn, changeset)
       end
     else
       json_error(conn, :m_forbidden)
@@ -165,22 +170,72 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       response =
         if end_token != nil do
           %{
-            "chunk" => chunk |> Enum.map(&Events.map_events/1),
+            "chunk" => chunk |> Enum.map(&Events.map_event/1),
             "start" => from,
             "end" => end_token,
-            "state" => state |> Enum.map(&Events.map_events/1)
+            "state" => state |> Enum.map(&Events.map_event/1)
           }
         else
           %{
-            "chunk" => chunk |> Enum.map(&Events.map_events/1),
+            "chunk" => chunk |> Enum.map(&Events.map_event/1),
             "start" => from,
-            "state" => state |> Enum.map(&Events.map_events/1)
+            "state" => state |> Enum.map(&Events.map_event/1)
           }
         end
 
       json(conn, response)
     else
       json_error(conn, :m_forbidden)
+    end
+  end
+
+  def send_message(
+        conn,
+        %{"room_id" => room_id, "event_type" => event_type, "txn_id" => txn_id} = _params
+      ) do
+    account = Map.fetch!(conn.assigns, :current_account)
+    sender = Map.fetch!(conn.assigns, :sender)
+    device = Map.fetch!(conn.assigns, :current_device)
+
+    txn =
+      Transactions.get(
+        localpart: account.localpart,
+        device_id: device.device_id,
+        transaction_id: txn_id
+      )
+
+    cond do
+      txn != nil ->
+        json(conn, %{event_id: txn.event_id})
+
+      SyncServer.user_in_room?(sender, room_id) ->
+        case Jason.encode(conn.body_params) do
+          {:ok, _} ->
+            event_params = %{
+              "room_id" => room_id,
+              "sender" => sender,
+              "content" => conn.body_params,
+              "type" => event_type
+            }
+
+            txn_params = %{
+              "localpart" => account.localpart,
+              "device_id" => device.device_id,
+              "transaction_id" => txn_id
+            }
+
+            case Events.send_message(event_params, txn_params) do
+              {:ok, %{event: event} = _changes} ->
+                SyncServer.append_event(room_id, event)
+                json(conn, %{event_id: event.event_id})
+
+              {:error, _name, changeset, _changes} ->
+                send_changeset_error_to_json(conn, changeset)
+            end
+
+          {:error, _} ->
+            json_error(conn, :m_bad_type)
+        end
     end
   end
 end

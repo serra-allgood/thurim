@@ -4,12 +4,14 @@ defmodule Thurim.Events do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias Thurim.Repo
 
   alias Thurim.Events.Event
   alias Thurim.Events.EventStateKey
   alias Thurim.Events.EventData
   alias Thurim.Events.StrippedEventData
+  alias Thurim.Transactions
 
   @default_power_levels %{
     "ban" => 50,
@@ -45,7 +47,7 @@ defmodule Thurim.Events do
     |> Repo.all()
   end
 
-  def map_events(event) do
+  def map_event(event) do
     cond do
       Enum.member?(StrippedEventData.stripped_events(), event.type) ->
         StrippedEventData.new(
@@ -243,6 +245,22 @@ defmodule Thurim.Events do
     %EventStateKey{}
     |> EventStateKey.changeset(%{"state_key" => state_key})
     |> Repo.insert()
+  end
+
+  def send_message(event_params, txn_params) do
+    new_depth = get_last_depth(event_params["room_id"]) + 1
+
+    multi =
+      Multi.new()
+      |> Multi.insert(
+        :event,
+        Event.changeset(%Event{}, Map.put(event_params, "depth", new_depth))
+      )
+      |> Multi.run(:transaction, fn _repo, %{event: event} = _changes ->
+        Transactions.create_transaction(Map.get(txn_params, "event_id", event.event_id))
+      end)
+
+    Repo.transaction(multi)
   end
 
   @doc """
