@@ -132,6 +132,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
       ) do
     sender = Map.fetch!(conn.assigns, :sender)
+    device = Map.fetch!(conn.assigns, :current_device)
 
     if User.permission_to_create_event?(sender, room_id, event_type, true) do
       case Events.create_event(
@@ -146,7 +147,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
              state_key
            ) do
         {:ok, event} ->
-          SyncServer.append_state_event(room_id, event)
+          SyncServer.append_state_event(sender, device, room_id, event)
           json(conn, %{"event_id" => event.event_id})
 
         {:error, _name, changeset, _changes} ->
@@ -242,7 +243,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
             case Events.send_message(event_params, txn_params) do
               {:ok, %{event: event} = _changes} ->
-                SyncServer.append_event(room_id, event)
+                SyncServer.append_event(sender, device, room_id, event)
                 json(conn, %{event_id: event.event_id})
 
               {:error, _name, changeset, _changes} ->

@@ -20,12 +20,12 @@ defmodule Thurim.Sync.SyncServer do
     {:ok, state}
   end
 
-  def append_event(room_id, event) do
-    GenServer.cast(__MODULE__, {:append_event, room_id, event})
+  def append_event(mx_user_id, device, room_id, event) do
+    GenServer.cast(__MODULE__, {:append_event, mx_user_id, device, room_id, event})
   end
 
-  def append_state_event(room_id, event) do
-    GenServer.cast(__MODULE__, {:append_state_event, room_id, event})
+  def append_state_event(mx_user_id, device, room_id, event) do
+    GenServer.cast(__MODULE__, {:append_state_event, mx_user_id, device, room_id, event})
   end
 
   def user_in_room?(mx_user_id, room_id) do
@@ -57,21 +57,21 @@ defmodule Thurim.Sync.SyncServer do
   ###########################
 
   # handle_cast for :append_event
-  def handle_cast({:append_event, room_id, event}, state) do
-    Enum.each(state, fn {_mx_user_id, devices} ->
-      Enum.each(devices, fn {_device_id, pid} ->
-        SyncState.append_timeline(pid, room_id, event)
-      end)
-    end)
+  def handle_cast({:append_event, mx_user_id, device, room_id, event}, state) do
+    Map.fetch!(state, mx_user_id)
+    |> Enum.filter(fn {device_id, _pid} -> device_id != device.device_id end)
+    |> Enum.each(fn {_device_id, pid} -> SyncState.append_timeline(pid, room_id, event) end)
+
+    {:noreply, state}
   end
 
   # handle_cast for :append_state_event
-  def handle_cast({:append_state_event, room_id, event}, state) do
-    Enum.each(state, fn {_mx_user_id, devices} ->
-      Enum.each(devices, fn {_device_id, pid} ->
-        SyncState.append_state(pid, room_id, event)
-      end)
-    end)
+  def handle_cast({:append_state_event, mx_user_id, device, room_id, event}, state) do
+    Map.fetch!(state, mx_user_id)
+    |> Enum.filter(fn {device_id, _pid} -> device_id != device.device_id end)
+    |> Enum.each(fn {_device_id, pid} -> SyncState.append_state(pid, room_id, event) end)
+
+    {:noreply, state}
   end
 
   # handle_cast for :add_device

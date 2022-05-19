@@ -6,9 +6,9 @@ defmodule Thurim.Events.StrippedEventData do
   def stripped_events do
     [
       "m.room.create",
-      "m.room.name",
+      # "m.room.name",
       "m.room.avatar",
-      "m.room.topic",
+      # "m.room.topic",
       "m.room.join_rules",
       "m.room.canonical_alias",
       "m.room.encryption"

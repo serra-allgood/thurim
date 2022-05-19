@@ -7,6 +7,7 @@ defmodule Thurim.Rooms do
   alias Ecto.Multi
   alias Thurim.Repo
   alias Thurim.Rooms.Room
+  alias Thurim.Rooms.RoomAlias
   alias Thurim.Events
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
@@ -44,6 +45,12 @@ defmodule Thurim.Rooms do
   """
   def get_room!(id), do: Repo.get!(Room, id)
 
+  def create_room_alias(params \\ %{}) do
+    %RoomAlias{}
+    |> RoomAlias.changeset(Map.put(params, "creator_id", Map.fetch!(params, "sender")))
+    |> Repo.insert()
+  end
+
   @doc """
   Creates a room.
 
@@ -74,10 +81,18 @@ defmodule Thurim.Rooms do
         Events.create_event(attrs, "m.room.power_levels", 3)
       end)
 
-    # TODO: Implement canonical room alias
-    # if Map.get(attrs, "room_alias_name", false) do
-    #   multi = multi |> Multi.run(:create_canonical_alias, fn _repo, _changes -> Events.create_event(attrs, "m.room.canonical_alias") end)
-    # end
+    room_alias = Map.get(attrs, "room_alias_name", false)
+
+    multi =
+      if room_alias do
+        multi
+        |> Multi.run(:create_canonical_alias, fn _repo, _changes ->
+          Events.create_event(attrs["room_id"], attrs, "m.room.canonical_alias")
+        end)
+        |> Multi.run(:create_alias, fn _repo, _changes -> create_room_alias(attrs) end)
+      else
+        multi
+      end
 
     multi =
       case Map.get(attrs, "preset", false) do
@@ -125,17 +140,57 @@ defmodule Thurim.Rooms do
 
     multi =
       if initial_state do
-        Enum.with_index(initial_state, 6)
+        Enum.with_index(initial_state, 7)
         |> Enum.reduce(multi, fn {state, index}, multi ->
           Multi.run(multi, "create_initial_state_#{index}", fn _repo, _changes ->
-            Events.create_event(Map.merge(attrs, state), "initial_state", index)
+            Events.create_event(Map.merge(attrs, state), "initial_state")
           end)
         end)
       else
         multi
       end
 
-    # TODO: Events implied by m.room.name, m.room.topic, and invites
+    name = Map.get(attrs, "name", false)
+
+    multi =
+      if name do
+        multi
+        |> Multi.run(:create_name_event, fn _repo, _changes ->
+          Events.create_event(attrs["room_id"], attrs, "m.room.name")
+        end)
+      else
+        multi
+      end
+
+    topic = Map.get(attrs, "topic", false)
+
+    multi =
+      if topic do
+        multi
+        |> Multi.run(:create_topic_event, fn _repo, _changes ->
+          Events.create_event(attrs["room_id"], attrs, "m.room.topic")
+        end)
+      else
+        multi
+      end
+
+    invite = Map.get(attrs, "invite", false)
+
+    multi =
+      if invite do
+        Enum.reduce(invite, multi, fn mx_user_id, multi ->
+          Multi.run(multi, "create_invite_for_#{mx_user_id}", fn _repo_changes ->
+            Events.create_event(
+              attrs["room_id"],
+              Map.put(attrs, "state_key", mx_user_id),
+              "m.room.membership",
+              "invite"
+            )
+          end)
+        end)
+      else
+        multi
+      end
 
     Repo.transaction(multi)
   end
@@ -217,24 +272,6 @@ defmodule Thurim.Rooms do
 
   """
   def get_room_alias!(id), do: Repo.get!(RoomAlias, id)
-
-  @doc """
-  Creates a room_alias.
-
-  ## Examples
-
-      iex> create_room_alias(%{field: value})
-      {:ok, %RoomAlias{}}
-
-      iex> create_room_alias(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def create_room_alias(attrs \\ %{}) do
-    %RoomAlias{}
-    |> RoomAlias.changeset(attrs)
-    |> Repo.insert()
-  end
 
   @doc """
   Updates a room_alias.
