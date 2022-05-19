@@ -157,12 +157,28 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     end
   end
 
-  def messages(conn, %{"room_id" => room_id, "from" => from, "dir" => dir} = params) do
+  def messages(conn, %{"room_id" => room_id, "dir" => dir} = params) do
     account = Map.fetch!(conn.assigns, :current_account)
     sender = Map.fetch!(conn.assigns, :sender)
+
     limit = Map.get(params, "limit", 10)
     filter = Map.get(params, "filter", nil) |> get_filter(account)
+    from = Map.get(params, "from", nil)
     to = Map.get(params, "to", nil)
+
+    from =
+      if from == nil do
+        Events.latest_timestamp()
+      else
+        String.to_integer(from)
+      end
+
+    to =
+      if to == nil do
+        nil
+      else
+        String.to_integer(to)
+      end
 
     if SyncServer.user_in_room?(sender, room_id) do
       {chunk, state, end_token} = Events.events_in_room_id(room_id, dir, filter, limit, from, to)
@@ -171,8 +187,8 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         if end_token != nil do
           %{
             "chunk" => chunk |> Enum.map(&Events.map_event/1),
-            "start" => from,
-            "end" => end_token,
+            "start" => Integer.to_string(from),
+            "end" => Integer.to_string(end_token),
             "state" => state |> Enum.map(&Events.map_event/1)
           }
         else

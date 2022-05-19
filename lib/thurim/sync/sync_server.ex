@@ -272,6 +272,7 @@ defmodule Thurim.Sync.SyncServer do
     case SyncState.start_link([]) do
       {:ok, sync_state} ->
         Enum.each(rooms_with_join_type, &SyncState.add_room_with_type(sync_state, sender, &1))
+        SyncState.move_cursor_to_latest(sync_state)
         sync_state
 
       _ ->

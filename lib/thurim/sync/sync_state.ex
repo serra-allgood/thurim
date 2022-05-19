@@ -105,45 +105,55 @@ defmodule Thurim.Sync.SyncState do
 
   def append_state(pid, room_id, event) do
     Agent.update(pid, fn {_cursor, response} ->
-      Map.put(
-        response,
-        "rooms",
-        Map.fetch!(response, "rooms")
-        |> Map.update!("join", fn joined_rooms ->
-          if Enum.member?(Map.keys(joined_rooms), room_id) do
-            Map.put(
-              joined_rooms,
-              room_id,
-              Map.fetch!(joined_rooms, room_id)
-              |> Map.update!("state", fn state -> state ++ [Events.map_event(event)] end)
-            )
-          else
-            joined_rooms
-          end
-        end)
-      )
+      {Integer.to_string(event.origin_server_ts),
+       Map.put(
+         response,
+         "rooms",
+         Map.fetch!(response, "rooms")
+         |> Map.update!("join", fn joined_rooms ->
+           if Enum.member?(Map.keys(joined_rooms), room_id) do
+             Map.put(
+               joined_rooms,
+               room_id,
+               Map.fetch!(joined_rooms, room_id)
+               |> Map.update!("state", fn state -> state ++ [Events.map_event(event)] end)
+             )
+           else
+             joined_rooms
+           end
+         end)
+       )}
     end)
   end
 
   def append_timeline(pid, room_id, event) do
     Agent.update(pid, fn {_cursor, response} ->
-      Map.put(
-        response,
-        "rooms",
-        Map.fetch!(response, "rooms")
-        |> Map.update!("join", fn joined_rooms ->
-          if Enum.member?(Map.keys(joined_rooms), room_id) do
-            Map.put(
-              joined_rooms,
-              room_id,
-              Map.fetch!(joined_rooms, room_id)
-              |> Map.update!("timeline", fn timeline -> timeline ++ [Events.map_event(event)] end)
-            )
-          else
-            joined_rooms
-          end
-        end)
-      )
+      {Integer.to_string(event.origin_server_ts),
+       Map.put(
+         response,
+         "rooms",
+         Map.fetch!(response, "rooms")
+         |> Map.update!("join", fn joined_rooms ->
+           if Enum.member?(Map.keys(joined_rooms), room_id) do
+             Map.put(
+               joined_rooms,
+               room_id,
+               Map.fetch!(joined_rooms, room_id)
+               |> Map.update!("timeline", fn timeline ->
+                 Map.put(timeline, "events", timeline["events"] ++ [Events.map_event(event)])
+               end)
+             )
+           else
+             joined_rooms
+           end
+         end)
+       )}
+    end)
+  end
+
+  def move_cursor_to_latest(pid) do
+    Agent.update(pid, fn {_cursor, response} ->
+      {Events.latest_timestamp() |> Integer.to_string(), response}
     end)
   end
 

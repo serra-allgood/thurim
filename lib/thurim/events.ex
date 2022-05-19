@@ -143,10 +143,10 @@ defmodule Thurim.Events do
     events = query |> Repo.all()
 
     end_ts =
-      if direction == "f" do
-        List.last(events).origin_server_ts
+      if Enum.empty?(events) do
+        latest_timestamp()
       else
-        List.first(events).origin_server_ts
+        List.last(events).origin_server_ts
       end
 
     is_end =
@@ -185,10 +185,10 @@ defmodule Thurim.Events do
     events = query |> Repo.all()
 
     end_ts =
-      if direction == "f" do
-        List.last(events).origin_server_ts
+      if Enum.empty?(events) do
+        latest_timestamp()
       else
-        List.first(events).origin_server_ts
+        List.last(events).origin_server_ts
       end
 
     is_end =
@@ -215,6 +215,15 @@ defmodule Thurim.Events do
     events_in_room_id(room_id, direction, nil, limit, from, to)
   end
 
+  def latest_timestamp() do
+    from(e in Event,
+      order_by: [desc: e.origin_server_ts],
+      select: e.origin_server_ts,
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
   def find_next_timestamp(timestamp) do
     from(e in Event,
       where: e.origin_server_ts >= ^timestamp,
@@ -222,8 +231,7 @@ defmodule Thurim.Events do
       select: e.origin_server_ts,
       limit: 1
     )
-    |> Repo.all()
-    |> List.first()
+    |> Repo.one()
   end
 
   def find_or_create_state_key(state_key) do
@@ -257,7 +265,7 @@ defmodule Thurim.Events do
         Event.changeset(%Event{}, Map.put(event_params, "depth", new_depth))
       )
       |> Multi.run(:transaction, fn _repo, %{event: event} = _changes ->
-        Transactions.create_transaction(Map.get(txn_params, "event_id", event.event_id))
+        Transactions.create_transaction(Map.put(txn_params, "event_id", event.event_id))
       end)
 
     Repo.transaction(multi)
