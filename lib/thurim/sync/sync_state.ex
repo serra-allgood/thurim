@@ -29,7 +29,7 @@ defmodule Thurim.Sync.SyncState do
            %{
              "state" =>
                events
-               |> Enum.map(&Events.map_event/1)
+               |> Enum.map(&Events.map_client_event/1)
            }}
         end)
         |> Enum.into(%{})
@@ -94,8 +94,8 @@ defmodule Thurim.Sync.SyncState do
              room.room_id,
              empty_room(join_type,
                heroes: heroes,
-               state: state |> Enum.map(fn event -> Events.map_event(event) end),
-               timeline: timeline |> Enum.map(fn event -> Events.map_event(event) end)
+               state: state |> Enum.map(fn event -> Events.map_client_event(event) end),
+               timeline: timeline |> Enum.map(fn event -> Events.map_client_event(event) end)
              )
            )
          )
@@ -116,7 +116,7 @@ defmodule Thurim.Sync.SyncState do
                joined_rooms,
                room_id,
                Map.fetch!(joined_rooms, room_id)
-               |> Map.update!("state", fn state -> state ++ [Events.map_event(event)] end)
+               |> Map.update!("state", fn state -> state ++ [Events.map_client_event(event)] end)
              )
            else
              joined_rooms
@@ -140,7 +140,11 @@ defmodule Thurim.Sync.SyncState do
                room_id,
                Map.fetch!(joined_rooms, room_id)
                |> Map.update!("timeline", fn timeline ->
-                 Map.put(timeline, "events", timeline["events"] ++ [Events.map_event(event)])
+                 Map.put(
+                   timeline,
+                   "events",
+                   timeline["events"] ++ [Events.map_client_event(event)]
+                 )
                end)
              )
            else

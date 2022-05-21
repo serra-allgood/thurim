@@ -79,7 +79,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     if SyncServer.user_in_room?(sender, room_id) do
       response =
         User.membership_events_in_room(room_id, membership, not_membership, at_time)
-        |> Enum.map(&Events.map_event/1)
+        |> Enum.map(&Events.map_client_event/1)
 
       json(conn, %{"chunk" => response})
     else
@@ -91,7 +91,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     sender = Map.fetch!(conn.assigns, :sender)
 
     if SyncServer.user_in_room?(sender, room_id) do
-      response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_event/1)
+      response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_client_event/1)
       json(conn, response)
     else
       json_error(conn, :m_forbidden)
@@ -187,16 +187,16 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       response =
         if end_token != nil do
           %{
-            "chunk" => chunk |> Enum.map(&Events.map_event/1),
+            "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
             "start" => Integer.to_string(from),
             "end" => Integer.to_string(end_token),
-            "state" => state |> Enum.map(&Events.map_event/1)
+            "state" => state |> Enum.map(&Events.map_client_event/1)
           }
         else
           %{
-            "chunk" => chunk |> Enum.map(&Events.map_event/1),
+            "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
             "start" => from,
-            "state" => state |> Enum.map(&Events.map_event/1)
+            "state" => state |> Enum.map(&Events.map_client_event/1)
           }
         end
 
