@@ -48,8 +48,8 @@ defmodule ThurimWeb.Errors do
   defp error(:m_exclusive), do: "M_EXCLUSIVE"
   defp error(:m_resource_limit_exceeded), do: "M_RESOURCE_LIMIT_EXCEEDED"
   defp error(:m_cannot_leave_server_notice_room), do: "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"
-  defp error(:p_internal_error), do: "P_INTERNAL_ERROR"
-  defp error(:p_not_implemented), do: "P_NOT_IMPLEMENTED"
+  defp error(:t_internal_error), do: "THURIM_INTERNAL_ERROR"
+  defp error(:t_not_implemented), do: "THURIM_NOT_IMPLEMENTED"
   defp error(_), do: "M_UNRECOGNIZED"
 
   @spec status_code(error) :: integer
@@ -63,8 +63,8 @@ defmodule ThurimWeb.Errors do
   defp status_code(:m_missing_token), do: 401
   defp status_code(:m_unknown_token), do: 401
   defp status_code(:m_not_found), do: 404
-  defp status_code(:thurim_internal_error), do: 500
-  defp status_code(:thurim_not_implemented), do: 500
+  defp status_code(:t_internal_error), do: 500
+  defp status_code(:t_not_implemented), do: 500
   defp status_code(:m_unsupported_room_version), do: 400
   defp status_code(_), do: 500
 
@@ -78,7 +78,7 @@ defmodule ThurimWeb.Errors do
   defp message(:m_missing_token), do: "Access token missing"
   defp message(:m_unknown_token), do: "Unknown access token"
   defp message(:m_not_found), do: "Not found"
-  defp message(:thurim_internal_error), do: "Thurim internal error"
-  defp message(:thurim_not_implemented), do: "API endpoint not yet implemented"
+  defp message(:t_internal_error), do: "Thurim internal error"
+  defp message(:t_not_implemented), do: "API endpoint not yet implemented"
   defp message(_), do: "Unknown Error"
 end

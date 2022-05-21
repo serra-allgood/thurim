@@ -1,9 +1,8 @@
 defmodule Thurim.Events.EventData do
-  def new(content, event_id, origin_server_ts, room_id, sender, type, state_key \\ nil) do
+  def new(content, origin_server_ts, room_id, sender, type, state_key \\ nil) do
     if is_nil(state_key) do
       %{
         "content" => content,
-        "event_id" => event_id,
         "origin_server_ts" => origin_server_ts,
         "room_id" => room_id,
         "sender" => sender,
@@ -12,7 +11,6 @@ defmodule Thurim.Events.EventData do
     else
       %{
         "content" => content,
-        "event_id" => event_id,
         "origin_server_ts" => origin_server_ts,
         "room_id" => room_id,
         "sender" => sender,

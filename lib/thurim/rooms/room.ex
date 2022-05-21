@@ -6,6 +6,7 @@ defmodule Thurim.Rooms.Room do
   alias Thurim.Rooms
 
   @default_room_version Application.get_env(:thurim, :matrix)[:default_room_version]
+  @supported_room_versions Application.get_env(:thurim, :matrix)[:supported_room_versions]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -25,6 +26,7 @@ defmodule Thurim.Rooms.Room do
     |> cast(attrs, [:room_id, :room_version, :published])
     |> set_defaults(room_id: Rooms.generate_room_id())
     |> validate_required([:room_id, :room_version])
+    |> validate_inclusion(:room_version, @supported_room_versions)
     |> unique_constraint(:room_id)
   end
 

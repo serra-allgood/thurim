@@ -206,6 +206,33 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     end
   end
 
+  def create_redaction(
+        conn,
+        %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
+      ) do
+    account = Map.fetch!(conn.assigns, :current_account)
+    sender = Map.fetch!(conn.assigns, :sender)
+    device = Map.fetch!(conn.assigns, :current_device)
+
+    txn =
+      Transactions.get(
+        localpart: account.localpart,
+        device_id: device.device_id,
+        transaction_id: txn_id
+      )
+
+    cond do
+      txn != nil ->
+        json(conn, %{event_id: txn.event_id})
+
+      SyncServer.user_in_room?(sender, room_id) ->
+        json_error(conn, :t_not_implemented)
+
+      true ->
+        json_error(conn, :t_not_implemented)
+    end
+  end
+
   def send_message(
         conn,
         %{"room_id" => room_id, "event_type" => event_type, "txn_id" => txn_id} = _params

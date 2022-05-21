@@ -58,16 +58,27 @@ defmodule Thurim.Events do
         )
 
       true ->
-        EventData.new(
-          event.content,
-          event.event_id,
-          event.origin_server_ts,
-          event.room_id,
-          event.sender,
-          event.type,
-          event.state_key
-        )
+        event =
+          EventData.new(
+            event.content,
+            event.origin_server_ts,
+            event.room_id,
+            event.sender,
+            event.type,
+            event.state_key
+          )
+
+        Map.put(event, "hashes", %{"sha256" => hash_content(event)})
+        # |> Map.put(event, "signatures", @domain => sign_event(event))
     end
+  end
+
+  def hash_content(event) do
+    event_json =
+      Map.drop(event, ["hashes", "signatures", "unsined"])
+      |> Jason.encode!()
+
+    :crypto.hash(:sha256, event_json)
   end
 
   def generate_event_id do
