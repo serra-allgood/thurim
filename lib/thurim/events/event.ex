@@ -17,6 +17,7 @@ defmodule Thurim.Events.Event do
     field :sender, :string
     field :origin_server_ts, :integer
     field :origin, :string, default: @domain
+    field :redacts, :string
     belongs_to :room, Room, references: :room_id, type: :string, foreign_key: :room_id
 
     belongs_to :event_state_key, EventStateKey,
@@ -42,7 +43,8 @@ defmodule Thurim.Events.Event do
         :room_id,
         :sender,
         :origin_server_ts,
-        :origin
+        :origin,
+        :redacts
       ],
       empty_values: []
     )

@@ -47,6 +47,16 @@ defmodule Thurim.Events do
     |> Repo.all()
   end
 
+  def prev_event_ids(event) do
+    from(e in Event,
+      where: e.origin_server_ts < ^event.origin_server_ts,
+      order_by: [desc: e.origin_server_ts],
+      select: e.event_id,
+      limit: 20
+    )
+    |> Repo.all()
+  end
+
   def map_client_event(event) do
     cond do
       Enum.member?(StrippedEventData.stripped_events(), event.type) ->
@@ -58,7 +68,7 @@ defmodule Thurim.Events do
         )
 
       true ->
-        EventData.new(
+        EventData.new_client(
           event.event_id,
           event.content,
           event.origin_server_ts,
@@ -68,6 +78,11 @@ defmodule Thurim.Events do
           event.state_key
         )
     end
+  end
+
+  def extract_hash_from_id(event_id) do
+    "$" <> hash = event_id
+    hash
   end
 
   def generate_event_id_hash(event) do

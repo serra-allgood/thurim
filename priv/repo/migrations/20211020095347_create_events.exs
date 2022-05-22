@@ -25,6 +25,8 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
 
       add :origin, :text, null: false
 
+      add :redacts, :text
+
       timestamps()
     end
 
