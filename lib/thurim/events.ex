@@ -58,7 +58,6 @@ defmodule Thurim.Events do
         )
 
       true ->
-        # event =
         EventData.new(
           event.event_id,
           event.content,
@@ -68,22 +67,71 @@ defmodule Thurim.Events do
           event.type,
           event.state_key
         )
-
-        # Map.put(event, "hashes", %{"sha256" => hash_content(event)})
-        # |> Map.put(event, "signatures", @domain => sign_event(event))
     end
   end
 
-  # def hash_content(event) do
-  #   event_json =
-  #     Map.drop(event, ["hashes", "signatures", "unsined"])
-  #     |> Jason.encode!()
+  def generate_event_id_hash(event) do
+    event_json =
+      Map.from_struct(event)
+      |> Map.drop([:hashes, :signatures, :unsigned, :__meta__, :event_state_key, :room])
+      |> Jason.encode!()
 
-  #   :crypto.hash(:sha256, event_json)
-  # end
+    "$" <> Base.url_encode64(:crypto.hash(:sha256, event_json), padding: false)
+  end
 
   def generate_event_id do
     "$" <> UUID.uuid4() <> ":" <> @domain
+  end
+
+  def get_auth_event_ids(%{type: "m.room.create"} = _event) do
+    []
+  end
+
+  def get_auth_event_ids(%{type: "m.room.member", state_key: state_key} = event)
+      when not is_nil(state_key) do
+    event_types = [{"m.room.create", ""}, {"m.room.member", event.sender}]
+
+    event_types =
+      if Enum.member?(["join", "invite"], event.content["membership"]) do
+        event_types ++ [{"m.room.join_rules", ""}, {"m.room.member", state_key}]
+      else
+        event_types ++ [{"m.room.member", state_key}]
+      end
+
+    from(e in Event,
+      where: e.type in ^Enum.map(event_types, fn {type, _state_key} -> type end),
+      where: e.state_key in ^Enum.map(event_types, fn {_type, state_key} -> state_key end),
+      order_by: [desc: e.depth],
+      select: {e.type, e.depth, e.event_id}
+    )
+    |> Repo.all()
+    |> extract_auth_event_ids()
+  end
+
+  def get_auth_event_ids(event) do
+    from(e in Event,
+      where: e.type in ["m.room.create", "m.room.member"],
+      where:
+        e.state_key ==
+          fragment("(case when type = 'm.room.member' then ? else '' end)", ^event.sender),
+      order_by: [desc: e.depth],
+      select: {e.type, e.depth, e.event_id}
+    )
+    |> Repo.all()
+    |> extract_auth_event_ids()
+  end
+
+  defp extract_auth_event_ids(events) do
+    events
+    |> Enum.group_by(fn {type, _depth, _event_id} -> type end, fn {_type, depth, event_id} ->
+      {depth, event_id}
+    end)
+    |> Enum.map(fn {_type, values} ->
+      values |> Enum.max_by(fn {depth, _event_id} -> depth end)
+    end)
+    |> Enum.sort_by(fn {depth, _event_id} -> depth end)
+    |> Enum.reverse()
+    |> Enum.map(fn {_depth, event_id} -> event_id end)
   end
 
   def get_by(attrs \\ []) do

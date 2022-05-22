@@ -5,7 +5,7 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
     create table(:events, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :depth, :bigint, null: false
-      add :auth_event_ids, {:array, :string}, null: false
+      add :auth_events, {:array, :string}, null: false
 
       add :room_id, references(:rooms, on_delete: :nothing, type: :text, column: :room_id),
         null: false
@@ -22,6 +22,8 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
       add :sender, :text, null: false
 
       add :origin_server_ts, :bigint, null: false
+
+      add :origin, :text, null: false
 
       timestamps()
     end

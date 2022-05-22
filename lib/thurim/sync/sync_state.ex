@@ -157,7 +157,7 @@ defmodule Thurim.Sync.SyncState do
 
   def move_cursor_to_latest(pid) do
     Agent.update(pid, fn {_cursor, response} ->
-      {Events.latest_timestamp() |> Integer.to_string(), response}
+      {Events.latest_timestamp() || 0 |> Integer.to_string(), response}
     end)
   end
 

@@ -5,15 +5,18 @@ defmodule Thurim.Events.Event do
   alias Thurim.Events.EventStateKey
   alias Thurim.Events
 
+  @domain Application.get_env(:thurim, :matrix)[:domain]
+
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "events" do
-    field :auth_event_ids, {:array, :binary_id}, default: []
+    field :auth_events, {:array, :string}
     field :event_id, :string
     field :depth, :integer
     field :type, :string
     field :content, :map
     field :sender, :string
     field :origin_server_ts, :integer
+    field :origin, :string, default: @domain
     belongs_to :room, Room, references: :room_id, type: :string, foreign_key: :room_id
 
     belongs_to :event_state_key, EventStateKey,
@@ -31,21 +34,21 @@ defmodule Thurim.Events.Event do
       attrs,
       [
         :depth,
-        :auth_event_ids,
+        :auth_events,
         :event_id,
         :type,
         :content,
         :state_key,
         :room_id,
         :sender,
-        :origin_server_ts
+        :origin_server_ts,
+        :origin
       ],
       empty_values: []
     )
-    |> set_defaults(
-      origin_server_ts: generate_origin_server_ts(),
-      event_id: Events.generate_event_id()
-    )
+    |> set_defaults(origin_server_ts: generate_origin_server_ts())
+    |> set_auth_events()
+    |> set_event_id_hash()
     |> validate_required([
       :depth,
       :type,
@@ -71,6 +74,36 @@ defmodule Thurim.Events.Event do
         changeset
       end
     end)
+  end
+
+  defp set_auth_events(changeset) do
+    if get_field(changeset, :auth_events) == nil do
+      case apply_action(changeset, :get_auth_events) do
+        {:ok, event} ->
+          auth_event_ids = Events.get_auth_event_ids(event)
+          change(event, %{auth_events: auth_event_ids})
+
+        {:error, changeset} ->
+          add_error(changeset, :auth_events, "Could not get auth event ids")
+      end
+    else
+      changeset
+    end
+  end
+
+  defp set_event_id_hash(changeset) do
+    if get_field(changeset, :event_id) |> is_nil() do
+      case apply_action(changeset, :generate_event_id) do
+        {:ok, event} ->
+          event_id = Events.generate_event_id_hash(event)
+          change(event, %{event_id: event_id})
+
+        {:error, changeset} ->
+          add_error(changeset, :event_id, "Could not generate event id hash")
+      end
+    else
+      changeset
+    end
   end
 
   # defp validate_not_nil(changeset, fields) do
