@@ -39,12 +39,28 @@ defmodule Thurim.Events do
   }
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
-  def timeline_for_room_id(room_id) do
+  def timeline_for_room_id(room_id, since \\ nil)
+
+  def timeline_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
       where: e.room_id == ^room_id,
-      order_by: e.origin_server_ts
+      order_by: [desc: e.origin_server_ts]
     )
     |> Repo.all()
+  end
+
+  def timeline_for_room_id(room_id, since) when is_integer(since) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where: e.origin_server_ts > ^since,
+      order_by: [desc: e.origin_server_ts]
+    )
+    |> Repo.all()
+  end
+
+  def timeline_for_room_id(room_id, since) when is_binary(since) do
+    since = String.to_integer(since)
+    timeline_for_room_id(room_id, since)
   end
 
   def prev_event_ids(event) do
@@ -68,15 +84,7 @@ defmodule Thurim.Events do
         )
 
       true ->
-        EventData.new_client(
-          event.event_id,
-          event.content,
-          event.origin_server_ts,
-          event.room_id,
-          event.sender,
-          event.type,
-          event.state_key
-        )
+        EventData.new_client(event)
     end
   end
 
@@ -293,6 +301,15 @@ defmodule Thurim.Events do
   def latest_timestamp() do
     from(e in Event,
       order_by: [desc: e.origin_server_ts],
+      select: e.origin_server_ts,
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
+  def earliest_timestamp_in_room_id(room_id) do
+    from(e in Event,
+      order_by: e.origin_server_ts,
       select: e.origin_server_ts,
       limit: 1
     )

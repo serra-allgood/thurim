@@ -56,25 +56,24 @@ defmodule Thurim.Events.EventData do
     raise msg
   end
 
-  def new_client(event_id, content, origin_server_ts, room_id, sender, type, state_key \\ nil) do
-    if is_nil(state_key) do
-      %{
-        "content" => content,
-        "origin_server_ts" => origin_server_ts,
-        "room_id" => room_id,
-        "sender" => sender,
-        "type" => type
+  def base_client(event) do
+    %{
+      "content" => event.content,
+      "origin_server_ts" => event.origin_server_ts,
+      "room_id" => event.room_id,
+      "sender" => event.sender,
+      "type" => event.type,
+      "unsigned" => %{
+        "age" => (Timex.now() |> DateTime.to_unix(:millisecond)) - event.origin_server_ts
       }
-    else
-      %{
-        "event_id" => event_id,
-        "content" => content,
-        "origin_server_ts" => origin_server_ts,
-        "room_id" => room_id,
-        "sender" => sender,
-        "type" => type,
-        "state_key" => state_key
-      }
-    end
+    }
+  end
+
+  def new_client(%{state_key: state_key} = event) when is_nil(state_key) do
+    base_client(event)
+  end
+
+  def new_client(event) do
+    base_client(event) |> Map.put("state_key", event.state_key)
   end
 end

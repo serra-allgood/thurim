@@ -78,8 +78,10 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     Map.get(conn.assigns, :access_token)
     |> AccessTokens.delete_access_token()
 
-    Map.get(conn.assigns, :current_device)
-    |> Devices.delete_device()
+    sender = Map.get(conn.assigns, :sender)
+    device = Map.get(conn.assigns, :current_device)
+    Devices.delete_device(device)
+    SyncServer.remove_device(sender, device)
 
     json(conn, %{})
   end

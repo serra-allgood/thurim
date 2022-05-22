@@ -1,4 +1,7 @@
 defmodule Thurim.Sync.SyncResponse do
+  alias Thurim.Sync.SyncResponse.InviteRooms
+  alias Thurim.Sync.SyncResponse.JoinRooms
+
   def new do
     %{
       "account_data" => [],
@@ -7,12 +10,16 @@ defmodule Thurim.Sync.SyncResponse do
       "next_batch" => "0",
       "presence" => [],
       "rooms" => %{
-        "invite" => %{},
-        "join" => %{},
+        "invite" => InviteRooms.new(),
+        "join" => JoinRooms.new(),
         "knock" => %{},
         "leave" => %{}
       }
     }
+  end
+
+  def new(partial_response) do
+    Map.merge(new(), partial_response)
   end
 
   def is_empty?(response) do
