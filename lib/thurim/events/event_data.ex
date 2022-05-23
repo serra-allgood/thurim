@@ -59,6 +59,7 @@ defmodule Thurim.Events.EventData do
   def base_client(event) do
     %{
       "content" => event.content,
+      "event_id" => event.event_id,
       "origin_server_ts" => event.origin_server_ts,
       "room_id" => event.room_id,
       "sender" => event.sender,

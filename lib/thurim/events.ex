@@ -44,7 +44,7 @@ defmodule Thurim.Events do
   def timeline_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
       where: e.room_id == ^room_id,
-      order_by: [desc: e.origin_server_ts]
+      order_by: e.origin_server_ts
     )
     |> Repo.all()
   end
@@ -53,7 +53,7 @@ defmodule Thurim.Events do
     from(e in Event,
       where: e.room_id == ^room_id,
       where: e.origin_server_ts > ^since,
-      order_by: [desc: e.origin_server_ts]
+      order_by: e.origin_server_ts
     )
     |> Repo.all()
   end
@@ -73,18 +73,20 @@ defmodule Thurim.Events do
     |> Repo.all()
   end
 
-  def map_client_event(event) do
-    cond do
-      Enum.member?(StrippedEventData.stripped_events(), event.type) ->
-        StrippedEventData.new(
-          event.content,
-          event.sender,
-          event.state_key,
-          event.type
-        )
+  def map_client_event(event, for_sync \\ false) do
+    client_event =
+      cond do
+        Enum.member?(StrippedEventData.stripped_events(), event.type) ->
+          StrippedEventData.new(event)
 
-      true ->
-        EventData.new_client(event)
+        true ->
+          EventData.new_client(event)
+      end
+
+    if for_sync do
+      Map.drop(client_event, ["room_id"])
+    else
+      client_event
     end
   end
 
@@ -307,8 +309,50 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
+  def latest_timestamp_across_room_ids(room_ids) do
+    from(e in Event,
+      where: e.room_id in ^room_ids,
+      order_by: [desc: e.origin_server_ts],
+      select: e.origin_server_ts,
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
+  def membership_in_room?(room_id, mx_user_id) do
+    from(e in Event,
+      where:
+        exists(
+          from e in Event,
+            where: e.type == "m.room.member",
+            where: e.room_id == ^room_id,
+            where: e.state_key == ^mx_user_id
+        ),
+      where:
+        not exists(
+          from e in Event,
+            where: e.content["membership"] in ^~w(leave kick ban)
+        ),
+      limit: 1
+    )
+    |> Repo.one() != nil
+  end
+
+  def latest_membership_type(room_id, mx_user_id) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where: e.state_key == ^mx_user_id,
+      where: e.type == "m.room.member",
+      order_by: [desc: e.origin_server_ts],
+      select: e.content["membership"],
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
   def earliest_timestamp_in_room_id(room_id) do
     from(e in Event,
+      where: e.room_id == ^room_id,
       order_by: e.origin_server_ts,
       select: e.origin_server_ts,
       limit: 1

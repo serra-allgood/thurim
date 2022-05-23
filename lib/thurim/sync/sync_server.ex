@@ -3,6 +3,7 @@ defmodule Thurim.Sync.SyncServer do
   alias Thurim.Presence
   alias Thurim.User
   alias Thurim.Rooms
+  alias Thurim.Events
   alias Thurim.Sync.SyncState
   alias Thurim.Sync.SyncResponse
 
@@ -18,6 +19,10 @@ defmodule Thurim.Sync.SyncServer do
   def init(_) do
     state = build_state_from_db()
     {:ok, state}
+  end
+
+  def remove_device(mx_user_id, device) do
+    GenServer.cast(__MODULE__, {:remove_device, mx_user_id, device})
   end
 
   def append_event(mx_user_id, device, room_id, event) do
@@ -55,6 +60,18 @@ defmodule Thurim.Sync.SyncServer do
   ###########################
   # Below is genserver impl #
   ###########################
+
+  # handle_cast for :remove_device
+  def handle_cast({:remove_device, mx_user_id, device}, state) do
+    Map.fetch!(state, mx_user_id)
+    |> Map.fetch!(device.device_id)
+    |> SyncState.stop()
+
+    state =
+      Map.update!(state, mx_user_id, fn devices -> Map.drop(devices, [device.device_id]) end)
+
+    {:noreply, state}
+  end
 
   # handle_cast for :append_event
   def handle_cast({:append_event, mx_user_id, device, room_id, event}, state) do
@@ -102,6 +119,11 @@ defmodule Thurim.Sync.SyncServer do
     Map.fetch!(state, mx_user_id)
     |> Enum.each(fn {_device_id, sync_state} ->
       SyncState.add_room_with_type(sync_state, mx_user_id, {room, "join"})
+
+      # drain_state(
+      #   sync_state,
+      #   Events.latest_timestamp_across_room_ids([room.room_id]) |> Integer.to_string()
+      # )
     end)
 
     {:noreply, state}
@@ -127,77 +149,26 @@ defmodule Thurim.Sync.SyncServer do
   # handle_call for :build_sync
   # TODO - implement filtering
   def handle_call(
-        {:build_sync, mx_user_id, device, filter, timeout, %{"since" => since} = params},
+        {:build_sync, mx_user_id, device, filter, timeout, params},
         from,
         state
       )
-      when is_nil(filter) and not is_nil(since) do
-    Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
-    full_state = Map.get(params, "full_state", false)
-
-    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
-    cursor = SyncState.get_cursor(sync_state)
-
-    {cursor, reply} =
-      if cursor != since do
-        SyncState.get_since(sync_state, since, full_state)
-      else
-        SyncState.get(sync_state, full_state)
-      end
-
-    if SyncResponse.is_empty?(reply) and timeout > 0 do
-      :timer.send_after(
-        1000,
-        {:check_sync, from, mx_user_id, device, filter, timeout, params}
-      )
-
-      {:noreply, state}
-    else
-      {:reply, reply, drain_state(state, mx_user_id, device, cursor)}
-    end
-  end
-
-  def handle_call(
-        {:build_sync, mx_user_id, device, filter, timeout, params = %{"since" => since}},
-        from,
-        state
-      )
-      when not is_nil(since) do
-    Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
-    full_state = Map.get(params, "full_state", false)
-
-    sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
-    cursor = SyncState.get_cursor(sync_state)
-
-    {cursor, reply} =
-      if cursor != since do
-        SyncState.get_since(sync_state, since, full_state)
-      else
-        SyncState.get(sync_state, full_state)
-      end
-
-    if SyncResponse.is_empty?(reply) and timeout > 0 do
-      :timer.send_after(
-        1000,
-        {:check_sync, from, mx_user_id, device, filter, timeout, params}
-      )
-
-      {:noreply, state}
-    else
-      {:reply, reply, drain_state(state, mx_user_id, device, cursor)}
-    end
-  end
-
-  # TODO - implement filtering
-  def handle_call({:build_sync, mx_user_id, device, filter, timeout, params}, from, state)
       when is_nil(filter) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
+    since = Map.get(params, "since", "0")
     full_state = Map.get(params, "full_state", false)
 
     sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
-    {cursor, reply} = SyncState.get(sync_state, full_state)
+    cursor = SyncState.get_cursor(sync_state)
 
-    if SyncResponse.is_empty?(reply) and timeout > 0 do
+    reply =
+      if since < cursor do
+        SyncState.get_since(sync_state, since, full_state)
+      else
+        SyncState.get(sync_state, full_state)
+      end
+
+    if !full_state and SyncResponse.is_empty?(reply) and timeout > 0 do
       :timer.send_after(
         1000,
         {:check_sync, from, mx_user_id, device, filter, timeout, params}
@@ -205,18 +176,28 @@ defmodule Thurim.Sync.SyncServer do
 
       {:noreply, state}
     else
-      {:reply, reply, drain_state(state, mx_user_id, device, cursor)}
+      drain_state(sync_state, since)
+
+      {:reply, reply, state}
     end
   end
 
   def handle_call({:build_sync, mx_user_id, device, filter, timeout, params}, from, state) do
     Map.get(params, "set_presence", false) |> handle_presence(mx_user_id)
     full_state = Map.get(params, "full_state", false)
+    since = Map.get(params, "since", "0")
 
     sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
-    {cursor, reply} = SyncState.get(sync_state, full_state)
+    cursor = SyncState.get_cursor(sync_state)
 
-    if SyncResponse.is_empty?(reply) and timeout > 0 do
+    reply =
+      if since < cursor do
+        SyncState.get_since(sync_state, since, full_state)
+      else
+        SyncState.get(sync_state, full_state)
+      end
+
+    if !full_state and SyncResponse.is_empty?(reply) and timeout > 0 do
       :timer.send_after(
         1000,
         {:check_sync, from, mx_user_id, device, filter, timeout, params}
@@ -224,35 +205,41 @@ defmodule Thurim.Sync.SyncServer do
 
       {:noreply, state}
     else
-      {:reply, reply, drain_state(state, mx_user_id, device, cursor)}
+      drain_state(sync_state, since)
+
+      {:reply, reply, state}
     end
   end
 
   # TODO - implement filtering
   def handle_info({:check_sync, from, mx_user_id, device, filter, timeout, params}, state) do
-    since = Map.get(params, "since", nil)
-    full_state = Map.get(params, "full_state", false)
+    since = Map.get(params, "since", "0")
 
     sync_state = Map.fetch!(state, mx_user_id) |> Map.fetch!(device.device_id)
+    cursor = SyncState.get_cursor(sync_state)
 
-    {cursor, reply} =
-      if since != nil do
-        SyncState.get_since(sync_state, since, full_state)
+    reply =
+      if since < cursor do
+        SyncState.get_since(sync_state, since, false)
       else
-        SyncState.get(sync_state, full_state)
+        SyncState.get(sync_state, false)
       end
 
-    if SyncResponse.is_empty?(reply) and timeout > 0 do
-      :timer.send_after(
-        1000,
-        {:check_sync, from, mx_user_id, device, filter, timeout - 1000, params}
-      )
+    cond do
+      SyncResponse.is_empty?(reply) and timeout > 0 ->
+        :timer.send_after(
+          1000,
+          {:check_sync, from, mx_user_id, device, filter, timeout - 1000, params}
+        )
 
-      {:noreply, state}
-    else
-      GenServer.reply(from, reply)
+        {:noreply, state}
 
-      {:noreply, drain_state(state, mx_user_id, device, cursor)}
+      SyncResponse.is_empty?(reply) ->
+        GenServer.reply(from, Map.drop(reply, ["rooms"]))
+
+      true ->
+        GenServer.reply(from, reply)
+        drain_state(sync_state, since)
     end
 
     {:noreply, state}
@@ -272,7 +259,13 @@ defmodule Thurim.Sync.SyncServer do
     case SyncState.start_link([]) do
       {:ok, sync_state} ->
         Enum.each(rooms_with_join_type, &SyncState.add_room_with_type(sync_state, sender, &1))
-        SyncState.move_cursor_to_latest(sync_state)
+        room_ids = rooms_with_join_type |> Enum.map(fn {room, _join_type} -> room.room_id end)
+
+        SyncState.set_next_batch_to_latest(
+          sync_state,
+          Events.latest_timestamp_across_room_ids(room_ids) || 0 |> Integer.to_string()
+        )
+
         sync_state
 
       _ ->
@@ -280,12 +273,8 @@ defmodule Thurim.Sync.SyncServer do
     end
   end
 
-  defp drain_state(state, mx_user_id, device, cursor) do
-    Map.fetch!(state, mx_user_id)
-    |> Map.fetch!(device.device_id)
-    |> SyncState.drain(cursor)
-
-    state
+  defp drain_state(sync_state, since) do
+    SyncState.drain(sync_state, since)
   end
 
   defp build_state_from_db() do
@@ -310,12 +299,7 @@ defmodule Thurim.Sync.SyncServer do
 
   defp rooms_with_mx_user_id(mx_user_id) do
     Rooms.list_rooms()
-    |> Enum.map(fn room ->
-      {room,
-       User.user_ids_in_room(room)
-       |> Enum.filter(fn {user_id, _join_type} -> user_id == mx_user_id end)
-       |> List.first()}
-    end)
-    |> Enum.map(fn {room, {_user_id, join_type}} -> {room, join_type} end)
+    |> Enum.filter(fn room -> Events.membership_in_room?(room.room_id, mx_user_id) end)
+    |> Enum.map(fn room -> {room, Events.latest_membership_type(room.room_id, mx_user_id)} end)
   end
 end

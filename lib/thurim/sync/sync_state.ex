@@ -4,6 +4,8 @@ defmodule Thurim.Sync.SyncState do
   alias Thurim.Sync.SyncResponse.InviteRooms
   alias Thurim.Sync.SyncResponse.JoinRooms
   alias Thurim.Events
+  alias Thurim.User
+  require Logger
 
   def start_link(_opts) do
     Agent.start_link(fn ->
@@ -11,12 +13,16 @@ defmodule Thurim.Sync.SyncState do
     end)
   end
 
+  def stop(pid) do
+    Agent.stop(pid)
+  end
+
   def get_cursor(pid) do
     Agent.get(pid, fn {cursor, _response} -> cursor end)
   end
 
   def get(pid, full_state) do
-    {cursor, response} = Agent.get(pid, & &1)
+    {_cursor, response} = Agent.get(pid, & &1)
 
     if full_state do
       room_ids_with_full_state =
@@ -29,34 +35,34 @@ defmodule Thurim.Sync.SyncState do
            %{
              "state" =>
                events
-               |> Enum.map(&Events.map_client_event/1)
+               |> Enum.map(&Events.map_client_event(&1, true))
            }}
         end)
         |> Enum.into(%{})
 
-      {cursor,
-       Map.put(
-         response,
-         "rooms",
-         Map.update!(response, "rooms", fn rooms ->
-           Map.put(
-             rooms,
-             "join",
-             Map.fetch!(rooms, "join")
-             |> Enum.map(fn {room_id, room_map} ->
-               {room_id, Map.merge(room_map, room_ids_with_full_state[room_id])}
-             end)
-             |> Enum.into(%{})
-           )
-         end)
-       )}
+      Map.put(
+        response,
+        "rooms",
+        Map.update!(response, "rooms", fn rooms ->
+          Map.put(
+            rooms,
+            "join",
+            Map.fetch!(rooms, "join")
+            |> Enum.map(fn {room_id, room_map} ->
+              {room_id, Map.merge(room_map, room_ids_with_full_state[room_id])}
+            end)
+            |> Enum.into(%{})
+          )
+        end)
+      )
     else
-      {cursor, response}
+      response
     end
   end
 
   def get_since(pid, _since, full_state) do
     # TODO
+    Logger.debug("get_since called")
     get(pid, full_state)
   end
 
@@ -82,7 +88,7 @@ defmodule Thurim.Sync.SyncState do
        Map.put(
          response,
          "next_batch",
-         new_cursor(timeline)
+         Events.latest_timestamp_across_room_ids([room.room_id]) |> Integer.to_string()
        )
        |> Map.put(
          "rooms",
@@ -94,8 +100,9 @@ defmodule Thurim.Sync.SyncState do
              room.room_id,
              empty_room(join_type,
                heroes: heroes,
-               state: state |> Enum.map(fn event -> Events.map_client_event(event) end),
-               timeline: timeline |> Enum.map(fn event -> Events.map_client_event(event) end)
+               state: state |> Enum.map(fn event -> Events.map_client_event(event, true) end),
+               timeline:
+                 timeline |> Enum.map(fn event -> Events.map_client_event(event, true) end)
              )
            )
          )
@@ -104,10 +111,10 @@ defmodule Thurim.Sync.SyncState do
   end
 
   def append_state(pid, room_id, event) do
-    Agent.update(pid, fn {_cursor, response} ->
-      {Integer.to_string(event.origin_server_ts),
-       Map.put(
-         response,
+    Agent.update(pid, fn {cursor, response} ->
+      {cursor,
+       Map.put(response, "next_batch", event.origin_server_ts |> Integer.to_string())
+       |> Map.put(
          "rooms",
          Map.fetch!(response, "rooms")
          |> Map.update!("join", fn joined_rooms ->
@@ -116,7 +123,13 @@ defmodule Thurim.Sync.SyncState do
                joined_rooms,
                room_id,
                Map.fetch!(joined_rooms, room_id)
-               |> Map.update!("state", fn state -> state ++ [Events.map_client_event(event)] end)
+               |> Map.update!("state", fn state ->
+                 Map.put(
+                   state,
+                   "events",
+                   state["events"] ++ [Events.map_client_event(event, true)]
+                 )
+               end)
              )
            else
              joined_rooms
@@ -127,10 +140,10 @@ defmodule Thurim.Sync.SyncState do
   end
 
   def append_timeline(pid, room_id, event) do
-    Agent.update(pid, fn {_cursor, response} ->
-      {Integer.to_string(event.origin_server_ts),
-       Map.put(
-         response,
+    Agent.update(pid, fn {cursor, response} ->
+      {cursor,
+       Map.put(response, "next_batch", event.origin_server_ts |> Integer.to_string())
+       |> Map.put(
          "rooms",
          Map.fetch!(response, "rooms")
          |> Map.update!("join", fn joined_rooms ->
@@ -143,7 +156,7 @@ defmodule Thurim.Sync.SyncState do
                  Map.put(
                    timeline,
                    "events",
-                   timeline["events"] ++ [Events.map_client_event(event)]
+                   timeline["events"] ++ [Events.map_client_event(event, true)]
                  )
                end)
              )
@@ -155,25 +168,29 @@ defmodule Thurim.Sync.SyncState do
     end)
   end
 
-  def move_cursor_to_latest(pid) do
-    Agent.update(pid, fn {_cursor, response} ->
-      {Events.latest_timestamp() || 0 |> Integer.to_string(), response}
+  def set_next_batch_to_latest(pid, next_batch) do
+    Agent.update(pid, fn {cursor, response} ->
+      {cursor, Map.put(response, "next_batch", next_batch)}
     end)
   end
 
-  def drain(pid, cursor) do
-    origin_server_ts = String.to_integer(cursor)
+  def drain(pid, since) do
+    origin_server_ts = String.to_integer(since)
 
     # TODO - device_lists, device_one_time_keys_count, presence
-    Agent.update(pid, fn {_cursor, response} ->
+    Agent.update(pid, fn {cursor, response} ->
       {response["next_batch"],
        Map.put(
          response,
          "account_data",
-         Map.fetch!(response, "account_data")
-         |> Enum.filter(&(&1[:origin_server_ts] > origin_server_ts))
+         Map.put(
+           response["account_data"],
+           "events",
+           response["account_data"]["events"]
+           |> Enum.filter(&(&1["origin_server_ts"] > origin_server_ts))
+         )
        )
-       |> Map.put("next_batch", cursor)
+       #  |> Map.put("next_batch", Events.latest_timestamp() || 0 |> Integer.to_string())
        |> Map.put(
          "rooms",
          Map.fetch!(response, "rooms")
@@ -202,26 +219,38 @@ defmodule Thurim.Sync.SyncState do
                      case join_key do
                        "account_data" ->
                          {join_key,
-                          join_value
-                          |> Enum.filter(
-                            &(!is_nil(&1["origin_server_ts"]) and
-                                &1["origin_server_ts"] > origin_server_ts)
+                          Map.put(
+                            join_value,
+                            "events",
+                            join_value["events"]
+                            |> Enum.filter(
+                              &(!is_nil(&1["origin_server_ts"]) and
+                                  &1["origin_server_ts"] > origin_server_ts)
+                            )
                           )}
 
                        "ephemeral" ->
                          {join_key,
-                          join_value
-                          |> Enum.filter(
-                            &(!is_nil(&1["origin_server_ts"]) and
-                                &1["origin_server_ts"] > origin_server_ts)
+                          Map.put(
+                            join_value,
+                            "events",
+                            join_value["events"]
+                            |> Enum.filter(
+                              &(!is_nil(&1["origin_server_ts"]) and
+                                  &1["origin_server_ts"] > origin_server_ts)
+                            )
                           )}
 
                        "state" ->
                          {join_key,
-                          join_value
-                          |> Enum.filter(
-                            &(!is_nil(&1["origin_server_ts"]) and
-                                &1["origin_server_ts"] > origin_server_ts)
+                          Map.put(
+                            join_value,
+                            "events",
+                            join_value["events"]
+                            |> Enum.filter(
+                              &(!is_nil(&1["origin_server_ts"]) and
+                                  &1["origin_server_ts"] > origin_server_ts)
+                            )
                           )}
 
                        "summary" ->
@@ -229,7 +258,8 @@ defmodule Thurim.Sync.SyncState do
                           %{
                             "m.heroes" => join_value["m.heroes"],
                             "m.invited_member_count" => 0,
-                            "m.joined_member_count" => 0
+                            "m.joined_member_count" =>
+                              User.joined_user_ids_in_room(room_id) |> Enum.count()
                           }}
 
                        "timeline" ->
@@ -242,7 +272,7 @@ defmodule Thurim.Sync.SyncState do
                                     &1["origin_server_ts"] > origin_server_ts)
                               ),
                             "limited" => false,
-                            "prev_batch" => response["next_batch"]
+                            "prev_batch" => cursor
                           }}
 
                        "unread_notifications_count" ->
@@ -274,17 +304,17 @@ defmodule Thurim.Sync.SyncState do
   end
 
   defp empty_room("join", attrs) do
-    JoinRooms.new(attrs[:heroes], attrs[:state], attrs[:timeline])
+    JoinRooms.new(attrs)
   end
 
   defp empty_room(_join_type, _attrs) do
     %{}
   end
 
-  defp new_cursor(events) do
-    Enum.map(events, & &1.origin_server_ts)
-    |> Enum.filter(fn ts -> ts end)
-    |> Enum.max(&>=/2, fn -> 0 end)
-    |> Integer.to_string()
-  end
+  # defp new_cursor(events) do
+  #   Enum.map(events, & &1.origin_server_ts)
+  #   |> Enum.filter(fn ts -> ts end)
+  #   |> Enum.max(&>=/2, fn -> 0 end)
+  #   |> Integer.to_string()
+  # end
 end

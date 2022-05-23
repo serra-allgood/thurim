@@ -1,9 +1,9 @@
 defmodule Thurim.Sync.SyncResponse.JoinRooms do
   def new do
     %{
-      "account_data" => [],
-      "ephemeral" => [],
-      "state" => [],
+      "account_data" => %{"events" => []},
+      "ephemeral" => %{"events" => []},
+      "state" => %{"events" => []},
       "summary" => %{
         "m.heroes" => [],
         "m.invited_member_count" => 0,
@@ -16,9 +16,9 @@ defmodule Thurim.Sync.SyncResponse.JoinRooms do
 
   def new(attrs) do
     %{
-      "account_data" => attrs[:account_data] || [],
-      "ephemeral" => attrs[:ephemeral] || [],
-      "state" => attrs[:state] || [],
+      "account_data" => %{"events" => attrs[:account_data] || []},
+      "ephemeral" => %{"events" => attrs[:ephemeral] || []},
+      "state" => %{"events" => attrs[:state] || []},
       "summary" => %{
         "m.heroes" => attrs[:heroes] || [],
         "m.invited_member_count" => attrs[:invited_member_count] || 0,

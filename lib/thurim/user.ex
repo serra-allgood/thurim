@@ -121,7 +121,7 @@ defmodule Thurim.User do
       select: {e.state_key, fragment("array_agg(content->>'membership')")}
     )
     |> Repo.all()
-    |> Enum.map(fn {user_id, events} -> {user_id, List.last(events)} end)
+    |> Enum.map(fn {user_id, memberships} -> {user_id, List.last(memberships)} end)
   end
 
   def membership_events_in_room(room_id, membership, not_membership, at_time) do
@@ -155,13 +155,10 @@ defmodule Thurim.User do
 
   def joined_user_ids_in_room(room_id) do
     from(e in Event,
-      where:
-        e.room_id == ^room_id and e.type == "m.room.member" and
-          fragment("content->>'membership' = 'join'"),
-      select:
-        {e.state_key, fragment("content->>'displayname'"), fragment("content->>'avatar_url'")},
-      order_by: e.origin_server_ts,
-      having: fragment("join_type = 'join'")
+      where: e.room_id == ^room_id and e.type == "m.room.member",
+      where: e.content["membership"] == "join",
+      select: {e.state_key, e.content["displayname"], e.content["avatar_url"]},
+      order_by: e.origin_server_ts
     )
     |> Repo.all()
     |> Enum.group_by(

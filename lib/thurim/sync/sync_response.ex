@@ -1,17 +1,14 @@
 defmodule Thurim.Sync.SyncResponse do
-  alias Thurim.Sync.SyncResponse.InviteRooms
-  alias Thurim.Sync.SyncResponse.JoinRooms
-
   def new do
     %{
-      "account_data" => [],
+      "account_data" => %{"events" => []},
       "device_lists" => [],
       "device_one_time_keys_count" => 0,
       "next_batch" => "0",
       "presence" => [],
       "rooms" => %{
-        "invite" => InviteRooms.new(),
-        "join" => JoinRooms.new(),
+        "invite" => %{},
+        "join" => %{},
         "knock" => %{},
         "leave" => %{}
       }
@@ -38,7 +35,7 @@ defmodule Thurim.Sync.SyncResponse do
         "join" ->
           Enum.all?(value, fn {_room_id,
                                %{"timeline" => timeline, "state" => state} = _join_values} ->
-            Enum.empty?(timeline["events"]) && Enum.empty?(state)
+            Enum.empty?(timeline["events"]) && Enum.empty?(state["events"])
           end)
 
         _ ->
