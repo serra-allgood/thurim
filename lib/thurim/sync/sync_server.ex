@@ -178,7 +178,7 @@ defmodule Thurim.Sync.SyncServer do
     else
       drain_state(sync_state, since)
 
-      {:reply, reply, state}
+      {:reply, SyncResponse.drop_empty_fields(reply), state}
     end
   end
 
@@ -207,7 +207,7 @@ defmodule Thurim.Sync.SyncServer do
     else
       drain_state(sync_state, since)
 
-      {:reply, reply, state}
+      {:reply, SyncResponse.drop_empty_fields(reply), state}
     end
   end
 
@@ -225,21 +225,16 @@ defmodule Thurim.Sync.SyncServer do
         SyncState.get(sync_state, false)
       end
 
-    cond do
-      SyncResponse.is_empty?(reply) and timeout > 0 ->
-        :timer.send_after(
-          1000,
-          {:check_sync, from, mx_user_id, device, filter, timeout - 1000, params}
-        )
+    if SyncResponse.is_empty?(reply) and timeout > 0 do
+      :timer.send_after(
+        1000,
+        {:check_sync, from, mx_user_id, device, filter, timeout - 1000, params}
+      )
 
-        {:noreply, state}
-
-      SyncResponse.is_empty?(reply) ->
-        GenServer.reply(from, Map.drop(reply, ["rooms"]))
-
-      true ->
-        GenServer.reply(from, reply)
-        drain_state(sync_state, since)
+      {:noreply, state}
+    else
+      GenServer.reply(from, SyncResponse.drop_empty_fields(reply))
+      drain_state(sync_state, since)
     end
 
     {:noreply, state}
