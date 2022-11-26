@@ -1,11 +1,10 @@
 defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.Sync.SyncServer
-  alias Thurim.Rooms
+  alias Thurim.Rooms.RoomServer
   alias Thurim.Events
-  alias Thurim.User
-  alias Thurim.Transactions
+  # alias Thurim.User
+  # alias Thurim.Transactions
 
   # Event shape:
   # {
@@ -19,14 +18,13 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
     result =
       Map.put(params, "sender", sender)
-      |> Rooms.create_room()
+      |> RoomServer.create_room()
 
     case result do
-      {:ok, %{room: room} = _changes} ->
-        SyncServer.add_room(room, sender)
-        json(conn, %{room_id: room.room_id})
+      {:ok, room_id} ->
+        json(conn, %{room_id: room_id})
 
-      {:error, _name, changeset, _changes} ->
+      {:error, changeset} ->
         send_changeset_error_to_json(conn, changeset)
     end
   end
@@ -59,227 +57,227 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     end
   end
 
-  def joined_members(conn, %{"room_id" => room_id} = _params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+  # def joined_members(conn, %{"room_id" => room_id} = _params) do
+  #   sender = Map.fetch!(conn.assigns, :sender)
 
-    if SyncServer.user_in_room?(sender, room_id) do
-      response = User.joined_user_ids_in_room(room_id)
-      json(conn, %{"joined" => response})
-    else
-      json_error(conn, :m_forbidden)
-    end
-  end
+  #   if SyncServer.user_in_room?(sender, room_id) do
+  #     response = User.joined_user_ids_in_room(room_id)
+  #     json(conn, %{"joined" => response})
+  #   else
+  #     json_error(conn, :m_forbidden)
+  #   end
+  # end
 
-  def members(conn, %{"room_id" => room_id} = params) do
-    sender = Map.fetch!(conn.assigns, :sender)
-    at_time = Map.get(params, "at", :infinity)
-    membership = Map.get(params, "membership", nil)
-    not_membership = Map.get(params, "not_membership", nil)
+  # def members(conn, %{"room_id" => room_id} = params) do
+  #   sender = Map.fetch!(conn.assigns, :sender)
+  #   at_time = Map.get(params, "at", :infinity)
+  #   membership = Map.get(params, "membership", nil)
+  #   not_membership = Map.get(params, "not_membership", nil)
 
-    if SyncServer.user_in_room?(sender, room_id) do
-      response =
-        User.membership_events_in_room(room_id, membership, not_membership, at_time)
-        |> Enum.map(&Events.map_client_event/1)
+  #   if SyncServer.user_in_room?(sender, room_id) do
+  #     response =
+  #       User.membership_events_in_room(room_id, membership, not_membership, at_time)
+  #       |> Enum.map(&Events.map_client_event/1)
 
-      json(conn, %{"chunk" => response})
-    else
-      json_error(conn, :m_forbidden)
-    end
-  end
+  #     json(conn, %{"chunk" => response})
+  #   else
+  #     json_error(conn, :m_forbidden)
+  #   end
+  # end
 
-  def state(conn, %{"room_id" => room_id} = _params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+  # def state(conn, %{"room_id" => room_id} = _params) do
+  #   sender = Map.fetch!(conn.assigns, :sender)
 
-    if SyncServer.user_in_room?(sender, room_id) do
-      response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_client_event/1)
-      json(conn, response)
-    else
-      json_error(conn, :m_forbidden)
-    end
-  end
+  #   if SyncServer.user_in_room?(sender, room_id) do
+  #     response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_client_event/1)
+  #     json(conn, response)
+  #   else
+  #     json_error(conn, :m_forbidden)
+  #   end
+  # end
 
-  def state_event(
-        conn,
-        %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
-      ) do
-    sender = Map.fetch!(conn.assigns, :sender)
+  # def state_event(
+  #       conn,
+  #       %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
+  #     ) do
+  #   sender = Map.fetch!(conn.assigns, :sender)
 
-    cond do
-      SyncServer.user_in_room?(sender, room_id) ->
-        case Events.latest_state_event_of_type_in_room_id(room_id, event_type, state_key) do
-          nil -> json_error(conn, :m_not_found)
-          event -> json(conn, event.content)
-        end
+  #   cond do
+  #     SyncServer.user_in_room?(sender, room_id) ->
+  #       case Events.latest_state_event_of_type_in_room_id(room_id, event_type, state_key) do
+  #         nil -> json_error(conn, :m_not_found)
+  #         event -> json(conn, event.content)
+  #       end
 
-      Events.user_previously_in_room?(sender, room_id) ->
-        leave_event =
-          Events.latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
+  #     Events.user_previously_in_room?(sender, room_id) ->
+  #       leave_event =
+  #         Events.latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
 
-        case Events.latest_state_event_of_type_in_room_id(
-               room_id,
-               event_type,
-               state_key,
-               leave_event.origin_server_ts
-             ) do
-          nil -> json_error(conn, :m_not_found)
-          event -> json(conn, event.content)
-        end
-    end
-  end
+  #       case Events.latest_state_event_of_type_in_room_id(
+  #              room_id,
+  #              event_type,
+  #              state_key,
+  #              leave_event.origin_server_ts
+  #            ) do
+  #         nil -> json_error(conn, :m_not_found)
+  #         event -> json(conn, event.content)
+  #       end
+  #   end
+  # end
 
-  def create_state_event(
-        conn,
-        %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
-      ) do
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+  # def create_state_event(
+  #       conn,
+  #       %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
+  #     ) do
+  #   sender = Map.fetch!(conn.assigns, :sender)
+  #   device = Map.fetch!(conn.assigns, :current_device)
 
-    if User.permission_to_create_event?(sender, room_id, event_type, true) do
-      case Events.create_event(
-             %{
-               "sender" => sender,
-               "content" => conn.body_params,
-               "room_id" => room_id,
-               "type" => event_type,
-               "state_key" => state_key
-             },
-             event_type,
-             state_key
-           ) do
-        {:ok, event} ->
-          SyncServer.append_state_event(sender, device, room_id, event)
-          json(conn, %{"event_id" => event.event_id})
+  #   if User.permission_to_create_event?(sender, room_id, event_type, true) do
+  #     case Events.create_event(
+  #            %{
+  #              "sender" => sender,
+  #              "content" => conn.body_params,
+  #              "room_id" => room_id,
+  #              "type" => event_type,
+  #              "state_key" => state_key
+  #            },
+  #            event_type,
+  #            state_key
+  #          ) do
+  #       {:ok, event} ->
+  #         SyncServer.append_state_event(sender, device, room_id, event)
+  #         json(conn, %{"event_id" => event.event_id})
 
-        {:error, _name, changeset, _changes} ->
-          send_changeset_error_to_json(conn, changeset)
-      end
-    else
-      json_error(conn, :m_forbidden)
-    end
-  end
+  #       {:error, _name, changeset, _changes} ->
+  #         send_changeset_error_to_json(conn, changeset)
+  #     end
+  #   else
+  #     json_error(conn, :m_forbidden)
+  #   end
+  # end
 
-  def messages(conn, %{"room_id" => room_id, "dir" => dir} = params) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
+  # def messages(conn, %{"room_id" => room_id, "dir" => dir} = params) do
+  #   account = Map.fetch!(conn.assigns, :current_account)
+  #   sender = Map.fetch!(conn.assigns, :sender)
 
-    limit = Map.get(params, "limit", 10)
-    filter = Map.get(params, "filter", nil) |> get_filter(account)
-    from = Map.get(params, "from", nil)
-    to = Map.get(params, "to", nil)
+  #   limit = Map.get(params, "limit", 10)
+  #   filter = Map.get(params, "filter", nil) |> get_filter(account)
+  #   from = Map.get(params, "from", nil)
+  #   to = Map.get(params, "to", nil)
 
-    from =
-      if from == nil do
-        Events.latest_timestamp()
-      else
-        String.to_integer(from)
-      end
+  #   from =
+  #     if from == nil do
+  #       Events.latest_timestamp()
+  #     else
+  #       String.to_integer(from)
+  #     end
 
-    to =
-      if to == nil do
-        nil
-      else
-        String.to_integer(to)
-      end
+  #   to =
+  #     if to == nil do
+  #       nil
+  #     else
+  #       String.to_integer(to)
+  #     end
 
-    if SyncServer.user_in_room?(sender, room_id) do
-      {chunk, state, end_token} = Events.events_in_room_id(room_id, dir, filter, limit, from, to)
+  #   if SyncServer.user_in_room?(sender, room_id) do
+  #     {chunk, state, end_token} = Events.events_in_room_id(room_id, dir, filter, limit, from, to)
 
-      response =
-        if end_token != nil do
-          %{
-            "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
-            "start" => Integer.to_string(from),
-            "end" => Integer.to_string(end_token),
-            "state" => state |> Enum.map(&Events.map_client_event/1)
-          }
-        else
-          %{
-            "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
-            "start" => from,
-            "state" => state |> Enum.map(&Events.map_client_event/1)
-          }
-        end
+  #     response =
+  #       if end_token != nil do
+  #         %{
+  #           "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
+  #           "start" => Integer.to_string(from),
+  #           "end" => Integer.to_string(end_token),
+  #           "state" => state |> Enum.map(&Events.map_client_event/1)
+  #         }
+  #       else
+  #         %{
+  #           "chunk" => chunk |> Enum.map(&Events.map_client_event/1),
+  #           "start" => from,
+  #           "state" => state |> Enum.map(&Events.map_client_event/1)
+  #         }
+  #       end
 
-      json(conn, response)
-    else
-      json_error(conn, :m_forbidden)
-    end
-  end
+  #     json(conn, response)
+  #   else
+  #     json_error(conn, :m_forbidden)
+  #   end
+  # end
 
-  def create_redaction(
-        conn,
-        %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
-      ) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+  # def create_redaction(
+  #       conn,
+  #       %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
+  #     ) do
+  #   account = Map.fetch!(conn.assigns, :current_account)
+  #   sender = Map.fetch!(conn.assigns, :sender)
+  #   device = Map.fetch!(conn.assigns, :current_device)
 
-    txn =
-      Transactions.get(
-        localpart: account.localpart,
-        device_id: device.device_id,
-        transaction_id: txn_id
-      )
+  #   txn =
+  #     Transactions.get(
+  #       localpart: account.localpart,
+  #       device_id: device.device_id,
+  #       transaction_id: txn_id
+  #     )
 
-    cond do
-      txn != nil ->
-        json(conn, %{event_id: txn.event_id})
+  #   cond do
+  #     txn != nil ->
+  #       json(conn, %{event_id: txn.event_id})
 
-      SyncServer.user_in_room?(sender, room_id) ->
-        json_error(conn, :t_not_implemented)
+  #     SyncServer.user_in_room?(sender, room_id) ->
+  #       json_error(conn, :t_not_implemented)
 
-      true ->
-        json_error(conn, :t_not_implemented)
-    end
-  end
+  #     true ->
+  #       json_error(conn, :t_not_implemented)
+  #   end
+  # end
 
-  def send_message(
-        conn,
-        %{"room_id" => room_id, "event_type" => event_type, "txn_id" => txn_id} = _params
-      ) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+  # def send_message(
+  #       conn,
+  #       %{"room_id" => room_id, "event_type" => event_type, "txn_id" => txn_id} = _params
+  #     ) do
+  #   account = Map.fetch!(conn.assigns, :current_account)
+  #   sender = Map.fetch!(conn.assigns, :sender)
+  #   device = Map.fetch!(conn.assigns, :current_device)
 
-    txn =
-      Transactions.get(
-        localpart: account.localpart,
-        device_id: device.device_id,
-        transaction_id: txn_id
-      )
+  #   txn =
+  #     Transactions.get(
+  #       localpart: account.localpart,
+  #       device_id: device.device_id,
+  #       transaction_id: txn_id
+  #     )
 
-    cond do
-      txn != nil ->
-        json(conn, %{event_id: txn.event_id})
+  #   cond do
+  #     txn != nil ->
+  #       json(conn, %{event_id: txn.event_id})
 
-      SyncServer.user_in_room?(sender, room_id) ->
-        case Jason.encode(conn.body_params) do
-          {:ok, _} ->
-            event_params = %{
-              "room_id" => room_id,
-              "sender" => sender,
-              "content" => conn.body_params,
-              "type" => event_type
-            }
+  #     SyncServer.user_in_room?(sender, room_id) ->
+  #       case Jason.encode(conn.body_params) do
+  #         {:ok, _} ->
+  #           event_params = %{
+  #             "room_id" => room_id,
+  #             "sender" => sender,
+  #             "content" => conn.body_params,
+  #             "type" => event_type
+  #           }
 
-            txn_params = %{
-              "localpart" => account.localpart,
-              "device_id" => device.device_id,
-              "transaction_id" => txn_id
-            }
+  #           txn_params = %{
+  #             "localpart" => account.localpart,
+  #             "device_id" => device.device_id,
+  #             "transaction_id" => txn_id
+  #           }
 
-            case Events.send_message(event_params, txn_params) do
-              {:ok, %{event: event} = _changes} ->
-                SyncServer.append_event(sender, device, room_id, event)
-                json(conn, %{event_id: event.event_id})
+  #           case Events.send_message(event_params, txn_params) do
+  #             {:ok, %{event: event} = _changes} ->
+  #               SyncServer.append_event(sender, device, room_id, event)
+  #               json(conn, %{event_id: event.event_id})
 
-              {:error, _name, changeset, _changes} ->
-                send_changeset_error_to_json(conn, changeset)
-            end
+  #             {:error, _name, changeset, _changes} ->
+  #               send_changeset_error_to_json(conn, changeset)
+  #           end
 
-          {:error, _} ->
-            json_error(conn, :m_bad_type)
-        end
-    end
-  end
+  #         {:error, _} ->
+  #           json_error(conn, :m_bad_type)
+  #       end
+  #   end
+  # end
 end

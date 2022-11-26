@@ -10,6 +10,5 @@ defmodule Thurim.Repo.Migrations.CreateAccountData do
 
       timestamps()
     end
-
   end
 end

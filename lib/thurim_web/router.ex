@@ -77,15 +77,6 @@ defmodule ThurimWeb.Router do
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
       end
-
-      scope "/v3", V3 do
-        pipe_through :access_token
-
-        post "/user/:user_id/filter", FilterController, :create
-        get "/user/:user_id/filter/:filter_id", FilterController, :show
-
-        get "/sync", SyncController, :index
-      end
     end
 
     scope "/client", Client do

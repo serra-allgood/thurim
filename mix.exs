@@ -51,9 +51,9 @@ defmodule Thurim.MixProject do
       {:decorator, "~> 1.4"},
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
-      {:horde, "~> 0.8.7"},
       {:timex, "~> 3.0"},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:amnesia, "~> 0.2.8"}
     ]
   end
 
@@ -66,8 +66,13 @@ defmodule Thurim.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "ecto.setup": [
+        "ecto.create",
+        "ecto.migrate",
+        "amnesia.create -d Thurim.Database --disk",
+        "run priv/repo/seeds.exs"
+      ],
+      "ecto.reset": ["ecto.drop", "amnesia.drop -d Thurim.Database --schema", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]
   end

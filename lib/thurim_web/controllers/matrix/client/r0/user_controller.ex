@@ -5,7 +5,6 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
   alias Thurim.Utils
   alias Thurim.Devices
   alias Thurim.AccessTokens
-  alias Thurim.Sync.SyncServer
 
   @matrix_config Application.get_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flow_types]
@@ -38,8 +37,6 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
       device =
         case Devices.get_by_device_id(device_id, account.localpart) do
           nil ->
-            SyncServer.add_device(User.mx_user_id(account.localpart), device_id)
-
             Devices.create_device_and_access_token(%{
               device_id: device_id,
               display_name: device_display_name,
@@ -78,10 +75,8 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
     Map.get(conn.assigns, :access_token)
     |> AccessTokens.delete_access_token()
 
-    sender = Map.get(conn.assigns, :sender)
     device = Map.get(conn.assigns, :current_device)
     Devices.delete_device(device)
-    SyncServer.remove_device(sender, device)
 
     json(conn, %{})
   end
@@ -139,8 +134,6 @@ defmodule ThurimWeb.Matrix.Client.R0.UserController do
 
     case User.register(register_params) do
       {:ok, %{account: account, device: device, signed_access_token: signed_access_token}} ->
-        SyncServer.add_user(User.mx_user_id(account.localpart), device)
-
         render(conn, "create.json",
           inhibit_login: register_params["inhibit_login"],
           account: account,

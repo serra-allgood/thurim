@@ -30,6 +30,16 @@ defmodule Thurim.User do
     UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
   end
 
+  def get_account_data(room_id, mx_user_id, since) do
+    from(a in AccountData,
+      where: a.room_id == ^room_id,
+      where: a.localpart == ^extract_localpart(mx_user_id),
+      where: a.inserted_at >= ^DateTime.from_unix!(since, :millisecond),
+      select: %{"type" => a.type, "content" => a.content}
+    )
+    |> Repo.all()
+  end
+
   def permission_to_create_event?(sender, room_id, event_type, is_state_event) do
     power_level_event =
       Events.latest_state_event_of_type_in_room_id(room_id, "m.room.power_levels", "")

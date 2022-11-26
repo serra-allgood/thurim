@@ -12,8 +12,36 @@ defmodule Thurim.Rooms do
 
   @domain Application.get_env(:thurim, :matrix)[:domain]
 
-  def generate_room_id() do
+  def generate_room_id do
     "!" <> UUID.uuid4() <> ":" <> @domain
+  end
+
+  def base_user_rooms(mx_user_id) do
+    from(r in Room,
+      join: e in assoc(r, :events),
+      on: e.room_id == r.room_id,
+      where: e.state_key == ^mx_user_id,
+      where: e.type == "m.room.member",
+      group_by: r.id,
+      select: {r, fragment("array_agg(events.content->>'membership')")}
+    )
+    |> Repo.all()
+  end
+
+  def user_rooms(mx_user_id, join_type \\ nil)
+
+  def user_rooms(mx_user_id, join_type) when is_nil(join_type) do
+    base_user_rooms(mx_user_id)
+    |> Enum.filter(fn {_room, membership_events} ->
+      !Enum.member?(~w(leave kick ban), List.last(membership_events))
+    end)
+    |> Enum.map(fn {room, _events} -> room end)
+  end
+
+  def user_rooms(mx_user_id, join_type) do
+    base_user_rooms(mx_user_id)
+    |> Enum.filter(fn {_room, membership_events} -> List.last(membership_events) == join_type end)
+    |> Enum.map(fn {room, _events} -> room end)
   end
 
   @doc """
