@@ -14,10 +14,10 @@ defdatabase Thurim.Database do
       end
     end
 
-    def next_count() do
+    def increment() do
       Amnesia.transaction do
         count = current_count()
-        write(%Globals{key: "counter", value: count + 1}).value
+        write(%Globals{key: "counter", value: count + 1})
       end
     end
   end
