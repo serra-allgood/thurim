@@ -7,7 +7,7 @@ defmodule Thurim.MixProject do
       version: "0.1.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:gettext] ++ Mix.compilers(),
+      compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps()
@@ -20,7 +20,7 @@ defmodule Thurim.MixProject do
   def application do
     [
       mod: {Thurim.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :crypto]
     ]
   end
 
@@ -52,8 +52,7 @@ defmodule Thurim.MixProject do
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.0"},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
-      {:amnesia, "~> 0.2.8"}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 
@@ -69,10 +68,9 @@ defmodule Thurim.MixProject do
       "ecto.setup": [
         "ecto.create",
         "ecto.migrate",
-        "amnesia.create -d Thurim.Database --disk",
         "run priv/repo/seeds.exs"
       ],
-      "ecto.reset": ["ecto.drop", "amnesia.drop -d Thurim.Database --schema", "ecto.setup"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]
   end

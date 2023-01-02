@@ -5,8 +5,8 @@ defmodule Thurim.Rooms.Room do
   alias Thurim.Events.Event
   alias Thurim.Rooms
 
-  @default_room_version Application.get_env(:thurim, :matrix)[:default_room_version]
-  @supported_room_versions Application.get_env(:thurim, :matrix)[:supported_room_versions]
+  @default_room_version Application.compile_env(:thurim, [:matrix, :default_room_version])
+  @supported_room_versions Application.compile_env(:thurim, [:matrix, :supported_room_versions])
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id

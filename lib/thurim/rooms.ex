@@ -5,12 +5,10 @@ defmodule Thurim.Rooms do
 
   import Ecto.Query, warn: false
   alias Ecto.Multi
-  alias Thurim.Repo
-  alias Thurim.Rooms.Room
-  alias Thurim.Rooms.RoomAlias
-  alias Thurim.Events
+  alias Thurim.{Events, Repo}
+  alias Thurim.Rooms.{Room, RoomAlias}
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
   def generate_room_id do
     "!" <> UUID.uuid4() <> ":" <> @domain

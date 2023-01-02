@@ -14,10 +14,12 @@ defmodule Thurim.Application do
       {Task.Supervisor, name: Thurim.SyncTaskSupervisor},
       Thurim.Federation.KeyServer,
       Thurim.Rooms.RoomServer,
+      Thurim.PresenceServer,
       # Start the Telemetry supervisor
       ThurimWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Thurim.PubSub},
+      ThurimWeb.Presence,
       # Start the Endpoint (http/https)
       ThurimWeb.Endpoint
       # Start a worker by calling: Thurim.Worker.start_link(arg)

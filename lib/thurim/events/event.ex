@@ -5,7 +5,7 @@ defmodule Thurim.Events.Event do
   alias Thurim.Events.EventStateKey
   alias Thurim.Events
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "events" do

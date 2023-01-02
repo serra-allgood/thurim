@@ -3,7 +3,7 @@ defmodule Thurim.Events.EventData do
   alias Thurim.Federation.KeyServer
   require Logger
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
   def base_pdu(event) do
     %{

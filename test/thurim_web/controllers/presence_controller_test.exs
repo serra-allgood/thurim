@@ -1,11 +1,17 @@
 defmodule ThurimWeb.PresenceControllerTest do
   use ThurimWeb.ConnCase
 
-  alias Thurim.Presence
+  alias Thurim.PresenceServer
+  alias ThurimWeb.Presence
 
   def clear_cache(_context) do
     ThurimWeb.AuthSessionCache.flush()
     Thurim.AccessTokens.AccessTokenCache.flush()
+
+    Presence.list("presence")
+    |> Map.keys()
+    |> Enum.each(fn key -> Presence.untrack(Process.whereis(PresenceServer), "presence", key) end)
+
     :ok
   end
 
@@ -47,7 +53,7 @@ defmodule ThurimWeb.PresenceControllerTest do
       |> json_response(200)
 
       %{presence: presence, status_msg: status_msg} =
-        Presence.get_user_presence(Thurim.User.mx_user_id("jump_spider"))
+        PresenceServer.get_user_presence(Thurim.User.mx_user_id("jump_spider"))
 
       assert presence == "online"
       assert status_msg == "I am here"
