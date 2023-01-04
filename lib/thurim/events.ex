@@ -7,10 +7,7 @@ defmodule Thurim.Events do
   alias Ecto.Multi
   alias Thurim.Repo
 
-  alias Thurim.Events.Event
-  alias Thurim.Events.EventStateKey
-  alias Thurim.Events.EventData
-  alias Thurim.Events.StrippedEventData
+  alias Thurim.Events.{Event, EventData, EventStateKey, StrippedEventData}
   alias Thurim.Transactions
 
   @default_power_levels %{
@@ -39,6 +36,17 @@ defmodule Thurim.Events do
   }
   @domain Application.compile_env(:thurim, [:matrix, :domain])
 
+  def get_current_count() do
+    from(e in Event, select: count(e.id))
+    |> Repo.one()
+  end
+
+  def ranked_events() do
+    from(e in Event,
+      select: %{e | rank: row_number() |> over(order_by: e.inserted_at)}
+    )
+  end
+
   def timeline_for_room_id(room_id, since \\ nil)
 
   def timeline_for_room_id(room_id, since) when is_nil(since) do
@@ -50,10 +58,10 @@ defmodule Thurim.Events do
   end
 
   def timeline_for_room_id(room_id, since) when is_integer(since) do
-    from(e in Event,
-      where: e.room_id == ^room_id,
-      where: e.origin_server_ts > ^since,
-      order_by: e.origin_server_ts
+    from(re in subquery(ranked_events()),
+      where: re.rank > ^since,
+      where: re.room_id == ^room_id,
+      order_by: re.origin_server_ts
     )
     |> Repo.all()
   end
