@@ -1,4 +1,6 @@
 defmodule Thurim.Sync.SyncState.JoinedRoom do
+  alias Thurim.Events
+
   @derive Jason.Encoder
   defstruct [
     :account_data,
@@ -32,5 +34,23 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
         notification_count: 0
       }
     }
+  end
+
+  def new(room_id, mx_user_id, since \\ nil)
+
+  def new(room_id, mx_user_id, since) when is_nil(since) do
+    new()
+    |> update_in(:summary, fn summary ->
+      heroes = Events.heroes_for_room_id(room_id, mx_user_id)
+      invited_member_count = Events.invited_member_count(room_id)
+      joined_member_count = Events.joined_member_count(room_id)
+
+      put_in(summary, "m.heroes", heroes)
+      |> put_in("m.invited_member_count", invited_member_count)
+      |> put_in("m.joined_member_count", joined_member_count)
+    end)
+    |> update_in(:state, fn state ->
+      nil
+    end)
   end
 end

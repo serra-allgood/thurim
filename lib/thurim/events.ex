@@ -41,6 +41,18 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
+  def invite_state_events(room_id, sender) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where:
+        e.type == "m.room.name" or
+          (e.type == "m.room.member" and e.content["membership"] == "invite" and
+             e.state_key == ^sender)
+    )
+    |> Repo.all()
+    |> Enum.map(&StrippedEventData.new/1)
+  end
+
   def ranked_events() do
     from(e in Event,
       select: %{e | rank: row_number() |> over(order_by: e.inserted_at)}
@@ -217,6 +229,27 @@ defmodule Thurim.Events do
       where: e.room_id == ^room_id and e.type == "m.room.member" and e.state_key != ^sender,
       order_by: e.origin_server_ts,
       select: e.state_key
+    )
+    |> Repo.all()
+  end
+
+  def invited_member_count(room_id) do
+    member_events(room_id)
+    |> Enum.filter(fn %{events: events} -> List.last(events) == "invite" end)
+    |> Enum.count()
+  end
+
+  def joined_member_count(room_id) do
+    member_events(room_id)
+    |> Enum.filter(fn %{events: events} -> List.last(events) == "join" end)
+    |> Enum.count()
+  end
+
+  def member_events(room_id) do
+    from(e in Event,
+      select: %{room_id: e.room_id, events: fragment("array_agg(events.content->>'membership')")},
+      where: e.room_id == ^room_id and e.type == "m.room.member",
+      group_by: e.room_id
     )
     |> Repo.all()
   end
