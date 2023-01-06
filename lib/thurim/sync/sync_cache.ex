@@ -56,38 +56,61 @@ defmodule Thurim.Sync.SyncCache do
   end
 
   @doc """
-  sync_helper
+  base_sync_helper
   1. Get rooms for user
   2. Get current sync point, will be the next_batch in response
   3. For each room response type, diff from since and now and aggregate results
   """
+  def base_sync_helper(sender, filter, _params) do
+    current_rooms = Rooms.base_user_rooms(sender)
+
+    Events.get_current_count()
+    |> SyncState.new()
+    |> update_in(:rooms, fn rooms ->
+      # Add invite rooms
+      update_in(rooms.invite, fn invite ->
+        current_rooms
+        |> filter_rooms("invite")
+        |> Enum.reduce(invite, fn {room, _membership_events} ->
+          invite_state_events = Events.invite_state_events(room.room_id, sender)
+          put_in(invite, room.room_id, InvitedRoom.new(invite_state_events))
+        end)
+        |> Map.reject(&InvitedRoom.empty?/1)
+      end)
+      # Add join rooms
+      |> update_in(rooms.join, fn join ->
+        current_rooms
+        |> filter_rooms("join")
+        |> Enum.reduce(join, fn {room, _membership_events} ->
+          put_in(join, room.room_id, JoinedRoom.new(room.room_id, sender, filter))
+        end)
+        |> Map.reject(&JoinedRoom.empty?/1)
+      end)
+    end)
+  end
+
   def sync_helper(sender, device_id, filter, params, opts \\ %{poll: false, since: nil})
 
   def sync_helper(sender, device_id, filter, params, %{poll: false, since: nil}) do
-    current_rooms = Rooms.base_user_rooms(sender)
+    response = base_sync_helper(sender, filter, params)
 
-    response =
-      Events.get_current_count()
-      |> SyncState.new()
-      |> update_in(:rooms, fn rooms ->
-        # Add invite rooms
-        update_in(rooms.invite, fn invite ->
-          current_rooms
-          |> filter_rooms("invite")
-          |> Enum.reduce(invite, fn {room, _membership_events} ->
-            invite_state_events = Events.invite_state_events(room.room_id, sender)
-            put_in(invite, room.room_id, InvitedRoom.new(invite_state_events))
-          end)
-        end)
-        # Add join rooms
-        |> update_in(rooms.join, fn join ->
-          current_rooms
-          |> filter_rooms("join")
-          |> Enum.reduce(join, fn {room, _membership_events} ->
-            put_in(join, room.room_id, JoinedRoom.new(room.room_id, sender))
-          end)
-        end)
-      end)
+    if !SyncState.empty?(response) do
+      put({sender, device_id, nil}, response)
+    end
+
+    response
+  end
+
+  def sync_helper(sender, device_id, filter, params, %{poll: true, since: nil}) do
+    response = base_sync_helper(sender, filter, params)
+
+    if !SyncState.empty?(response) do
+      put({sender, device_id, nil}, response)
+    else
+      sync_helper(sender, device_id, filter, params, %{poll: true, since: nil})
+    end
+
+    response
   end
 
   defp empty_state(prev_batch) do

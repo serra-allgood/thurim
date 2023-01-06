@@ -31,4 +31,16 @@ defmodule Thurim.Sync.SyncState do
       rooms: Rooms.new()
     }
   end
+
+  def empty?(sync_state) do
+    Map.from_struct(sync_state)
+    |> Enum.all?(fn {key, value} ->
+      case key do
+        :account_data -> AccountData.empty?(value)
+        :presence -> Presence.empty?(value)
+        :rooms -> Rooms.empty?(value)
+        _ -> true
+      end
+    end)
+  end
 end
