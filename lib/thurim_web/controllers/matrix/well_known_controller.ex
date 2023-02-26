@@ -1,7 +1,7 @@
 defmodule ThurimWeb.Matrix.WellKnownController do
   use ThurimWeb, :controller
 
-  @homeserver_url Application.get_env(:thurim, :matrix)[:homeserver_url]
+  @homeserver_url Application.compile_env(:thurim, :matrix)[:homeserver_url]
 
   def client(conn, _params) do
     json(conn, %{

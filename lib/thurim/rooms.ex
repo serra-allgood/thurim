@@ -10,7 +10,7 @@ defmodule Thurim.Rooms do
   alias Thurim.Rooms.RoomAlias
   alias Thurim.Events
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, :matrix)[:domain]
 
   def generate_room_id() do
     "!" <> UUID.uuid4() <> ":" <> @domain

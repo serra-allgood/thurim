@@ -16,7 +16,7 @@ defmodule Thurim.User do
   alias Thurim.PushRules
   alias Thurim.Events
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, :matrix)[:domain]
 
   def localpart_available?(localpart) do
     get_account(localpart) == nil

@@ -208,7 +208,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
   def create_redaction(
         conn,
-        %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
+        %{"room_id" => room_id, "event_id" => _event_id, "txn_id" => txn_id} = _params
       ) do
     account = Map.fetch!(conn.assigns, :current_account)
     sender = Map.fetch!(conn.assigns, :sender)

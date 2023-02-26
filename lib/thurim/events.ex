@@ -37,7 +37,7 @@ defmodule Thurim.Events do
     "state_default" => 50,
     "users_default" => 0
   }
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, :matrix)[:domain]
 
   def timeline_for_room_id(room_id, since \\ nil)
 

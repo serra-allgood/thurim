@@ -6,7 +6,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   require Logger
   import Phoenix.Controller, only: [json: 2]
 
-  @matrix_config Application.get_env(:thurim, :matrix)
+  @matrix_config Application.compile_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flows]
 
   def init(options), do: options
