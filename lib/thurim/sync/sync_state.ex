@@ -17,6 +17,10 @@ defmodule Thurim.Sync.SyncState do
     # :to_device
   ]
 
+  def new(next_batch) when is_nil(next_batch) do
+    new("0")
+  end
+
   def new(next_batch) when is_integer(next_batch) do
     next_batch
     |> to_string()
@@ -33,8 +37,7 @@ defmodule Thurim.Sync.SyncState do
   end
 
   def empty?(sync_state) do
-    Map.from_struct(sync_state)
-    |> Enum.all?(fn {key, value} ->
+    Enum.all?(sync_state, fn {key, value} ->
       case key do
         :account_data -> AccountData.empty?(value)
         :presence -> Presence.empty?(value)

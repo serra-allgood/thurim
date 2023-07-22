@@ -36,8 +36,8 @@ defmodule Thurim.Events do
   }
   @domain Application.compile_env(:thurim, [:matrix, :domain])
 
-  def get_current_count() do
-    from(e in Event, select: count(e.id))
+  def max_stream_ordering() do
+    from(e in Event, select: max(e.stream_ordering))
     |> Repo.one()
   end
 

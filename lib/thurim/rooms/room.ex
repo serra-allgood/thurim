@@ -9,7 +9,6 @@ defmodule Thurim.Rooms.Room do
   @supported_room_versions Application.compile_env(:thurim, [:matrix, :supported_room_versions])
 
   @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :binary_id
   schema "rooms" do
     field :room_id, :string
     field :room_version, :string, default: @default_room_version

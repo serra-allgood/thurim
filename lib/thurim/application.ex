@@ -13,6 +13,7 @@ defmodule Thurim.Application do
       Thurim.CacheSupervisor,
       {Registry, keys: :unique, name: Registry.Room},
       Thurim.Rooms.RoomSupervisor,
+      {Task.Supervisor, name: Thurim.SyncTaskSupervisor},
       # Start the Telemetry supervisor
       ThurimWeb.Telemetry,
       # Start the PubSub system
