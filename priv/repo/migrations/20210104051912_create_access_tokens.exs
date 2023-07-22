@@ -4,8 +4,22 @@ defmodule Thurim.Repo.Migrations.CreateAccessTokens do
   def change do
     create table(:access_tokens, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :device_session_id, references(:devices, on_delete: :delete_all, type: :binary_id, column: :session_id)
-      add :localpart, references(:accounts, on_delete: :delete_all, type: :text, column: :localpart)
+
+      add :device_session_id,
+          references(:devices,
+            on_delete: :delete_all,
+            type: :binary_id,
+            column: :session_id
+          ),
+          null: false
+
+      add :localpart,
+          references(:accounts,
+            on_delete: :delete_all,
+            type: :text,
+            column: :localpart
+          ),
+          null: false
 
       timestamps()
     end

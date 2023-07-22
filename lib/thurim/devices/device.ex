@@ -1,7 +1,6 @@
 defmodule Thurim.Devices.Device do
   use Ecto.Schema
-  alias Thurim.User.Account
-  alias Thurim.AccessTokens.AccessToken
+  alias Thurim.{AccessTokens.AccessToken, SyncTokens.SyncToken, User.Account}
   import Ecto.Changeset
 
   @primary_key {:session_id, :binary_id, autogenerate: true}
@@ -13,6 +12,7 @@ defmodule Thurim.Devices.Device do
     field :user_agent, :string
     belongs_to :account, Account, references: :localpart, type: :string, foreign_key: :localpart
     has_one :access_token, AccessToken, foreign_key: :device_session_id
+    has_many :sync_tokens, SyncToken, foreign_key: :device_session_id
 
     timestamps()
   end

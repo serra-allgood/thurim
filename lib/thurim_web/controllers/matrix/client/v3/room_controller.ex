@@ -21,9 +21,9 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       |> Rooms.create_room()
 
     case result do
-      {:ok, room_id} ->
-        RoomSupervisor.start_room(room_id)
-        json(conn, %{room_id: room_id})
+      {:ok, %{room: room} = _changes} ->
+        RoomSupervisor.start_room(room.room_id)
+        json(conn, %{room_id: room.room_id})
 
       {:error, changeset} ->
         send_changeset_error_to_json(conn, changeset)
