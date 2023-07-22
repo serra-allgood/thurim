@@ -121,7 +121,7 @@ defmodule Thurim.Rooms do
       end
 
     multi =
-      case Map.get(attrs, "preset", false) do
+      case attrs["preset"] do
         "private_chat" ->
           multi
           |> Multi.run(:create_private_join_rule, fn _repo, _changes ->

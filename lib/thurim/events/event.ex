@@ -18,6 +18,7 @@ defmodule Thurim.Events.Event do
     field :origin_server_ts, :integer
     field :origin, :string, default: @domain
     field :redacts, :string
+    field :stream_ordering, :integer
     belongs_to :room, Room, references: :room_id, type: :string, foreign_key: :room_id
 
     belongs_to :event_state_key, EventStateKey,
