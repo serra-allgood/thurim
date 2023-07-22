@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.KeysController do
+defmodule ThurimWeb.Matrix.Client.V3.KeysController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
 

@@ -11,10 +11,8 @@ defmodule Thurim.Application do
       Thurim.Repo,
       # Start needed supervisors
       Thurim.CacheSupervisor,
-      {Task.Supervisor, name: Thurim.SyncTaskSupervisor},
-      Thurim.Federation.KeyServer,
-      Thurim.Rooms.RoomServer,
-      Thurim.PresenceServer,
+      {Registry, keys: :unique, name: Registry.Room},
+      Thurim.Rooms.RoomSupervisor,
       # Start the Telemetry supervisor
       ThurimWeb.Telemetry,
       # Start the PubSub system

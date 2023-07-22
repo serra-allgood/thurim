@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.SyncController do
+defmodule ThurimWeb.Matrix.Client.V3.SyncController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
   alias Thurim.Sync.SyncCache

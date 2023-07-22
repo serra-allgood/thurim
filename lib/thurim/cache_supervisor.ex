@@ -9,9 +9,7 @@ defmodule Thurim.CacheSupervisor do
   def init(_init_arg) do
     children = [
       Thurim.AccessTokens.AccessTokenCache,
-      ThurimWeb.AuthSessionCache,
-      Thurim.Sync.SyncCache,
-      Thurim.Rooms.RoomCache
+      ThurimWeb.AuthSessionCache
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.FilterController do
+defmodule ThurimWeb.Matrix.Client.V3.FilterController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
 

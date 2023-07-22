@@ -31,7 +31,7 @@ defmodule ThurimWeb.Router do
     pipe_through :api
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
         get "/login", UserController, :index
         post "/login", UserController, :login
         get "/register/available", UserController, :available
@@ -39,7 +39,7 @@ defmodule ThurimWeb.Router do
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
         pipe_through :interactive_auth
 
         post "/register", UserController, :create
@@ -47,7 +47,7 @@ defmodule ThurimWeb.Router do
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
         pipe_through :access_token
 
         post "/logout", UserController, :logout
@@ -80,7 +80,7 @@ defmodule ThurimWeb.Router do
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
         pipe_through [:interactive_auth, :access_token]
 
         post "/account/password", UserController, :password

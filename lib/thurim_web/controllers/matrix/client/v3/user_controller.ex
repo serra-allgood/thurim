@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.UserController do
+defmodule ThurimWeb.Matrix.Client.V3.UserController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
   alias Thurim.User

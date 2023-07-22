@@ -18,34 +18,6 @@ config :thurim, :matrix,
   domain: "localhost",
   homeserver_url: "https://localhost:4001"
 
-config :thurim, Thurim.Rooms.RoomCache,
-  # When using :shards as backend
-  # backend: :shards,
-  # GC interval for pushing new generation: 12 hrs
-  gc_interval: :timer.hours(24),
-  # Max 1 million entries in cache
-  max_size: 1_000_000,
-  # Max 2 GB of memory
-  allocated_memory: 2_000_000_000,
-  # GC min timeout: 10 sec
-  gc_cleanup_min_timeout: :timer.seconds(10),
-  # GC min timeout: 10 min
-  gc_cleanup_max_timeout: :timer.minutes(10)
-
-config :thurim, Thurim.Sync.SyncCache,
-  # When using :shards as backend
-  # backend: :shards,
-  # GC interval for pushing new generation: 12 hrs
-  gc_interval: :timer.hours(24),
-  # Max 1 million entries in cache
-  max_size: 1_000_000,
-  # Max 2 GB of memory
-  allocated_memory: 2_000_000_000,
-  # GC min timeout: 10 sec
-  gc_cleanup_min_timeout: :timer.seconds(10),
-  # GC min timeout: 10 min
-  gc_cleanup_max_timeout: :timer.minutes(10)
-
 config :thurim, ThurimWeb.AuthSessionCache,
   # 10 minutes
   gc_interval: :timer.minutes(10),

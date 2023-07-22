@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.UserView do
+defmodule ThurimWeb.Matrix.Client.V3.UserView do
   use ThurimWeb, :view
   alias Thurim.User
 

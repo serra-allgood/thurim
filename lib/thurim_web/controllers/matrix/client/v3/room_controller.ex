@@ -1,7 +1,7 @@
-defmodule ThurimWeb.Matrix.Client.R0.RoomController do
+defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.Rooms.RoomServer
+  alias Thurim.{Rooms, Rooms.RoomSupervisor}
   alias Thurim.Events
   # alias Thurim.User
   # alias Thurim.Transactions
@@ -14,14 +14,15 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   #   name?: string
   # }
   def create(conn, params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
 
     result =
       Map.put(params, "sender", sender)
-      |> RoomServer.create_room()
+      |> Rooms.create_room()
 
     case result do
       {:ok, room_id} ->
+        RoomSupervisor.start_room(room_id)
         json(conn, %{room_id: room_id})
 
       {:error, changeset} ->

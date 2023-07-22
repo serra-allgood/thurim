@@ -1,4 +1,4 @@
-defmodule ThurimWeb.Matrix.Client.R0.PresenceController do
+defmodule ThurimWeb.Matrix.Client.V3.PresenceController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
 

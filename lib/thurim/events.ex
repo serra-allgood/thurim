@@ -41,6 +41,11 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
+  def for_room(room_id) do
+    from(e in Event, where: e.room_id == ^room_id, order_by: e.origin_server_ts)
+    |> Repo.all()
+  end
+
   def invite_state_events(room_id, sender) do
     from(e in Event,
       where: e.room_id == ^room_id,
