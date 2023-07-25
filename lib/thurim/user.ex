@@ -179,6 +179,14 @@ defmodule Thurim.User do
     )
   end
 
+  def in_room?(sender, room_id) do
+    Events.latest_membership_type(room_id, sender) == "join"
+  end
+
+  def previously_in_room?(sender, room_id) do
+    Events.user_previously_in_room?(sender, room_id)
+  end
+
   def extract_localpart(user_id) do
     [head | _tail] = String.split(user_id, ":", parts: 2)
     "@" <> localpart = head

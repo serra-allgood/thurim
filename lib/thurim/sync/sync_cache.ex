@@ -7,7 +7,7 @@ defmodule Thurim.Sync.SyncCache do
 
   alias Thurim.Sync.SyncState
   alias Thurim.Sync.SyncState.{InvitedRoom, JoinedRoom, KnockedRoom, LeftRoom}
-  alias Thurim.{Events, Rooms}
+  alias Thurim.{Events, Rooms, Rooms.RoomServer}
 
   def fetch_sync(sender, filter, timeout, params) do
     case Map.fetch(params, "since") do
@@ -32,12 +32,17 @@ defmodule Thurim.Sync.SyncCache do
   end
 
   def build_sync(sender, filter, timeout, params, since) do
-    WaitForIt.case_wait sync_helper(sender, filter, params, since),
+    WaitForIt.case_wait sync_helper(sender, filter, params, since, poll: true),
       signal: :sync_update,
       timeout: timeout do
       {^sender, response} -> response
     else
-      _ -> empty_state(since)
+      _ ->
+        Rooms.list_rooms()
+        |> Enum.map(fn {room, _} -> room end)
+        |> silence_updates()
+
+        empty_state(since)
     end
   end
 
@@ -79,15 +84,31 @@ defmodule Thurim.Sync.SyncCache do
     end)
   end
 
-  def sync_helper(sender, filter, params, since) do
+  def sync_helper(sender, filter, params, since, opts \\ []) do
+    poll = Keyword.get(opts, :poll, false)
     response = base_sync_helper(sender, filter, params, since)
 
-    if !SyncState.empty?(response) do
-      put({sender, nil}, response)
-      WaitForIt.signal(:sync_update)
-    end
+    cond do
+      !SyncState.empty?(response) ->
+        put({sender, nil}, response)
+        WaitForIt.signal(:sync_update)
+        {sender, response}
 
-    {sender, response}
+      poll ->
+        current_rooms = Rooms.all_user_rooms(sender) |> Enum.map(fn {room, _} -> room end)
+        listen_for_updates(current_rooms)
+
+        receive do
+          {:room_update, room_id} ->
+            if current_rooms |> Enum.map(& &1.room_id) |> Enum.member?(room_id) do
+              silence_updates(current_rooms)
+              sync_helper(sender, filter, params, since)
+            end
+        end
+
+      true ->
+        {sender, response}
+    end
   end
 
   defp empty_state(prev_batch) do
@@ -98,5 +119,13 @@ defmodule Thurim.Sync.SyncCache do
     Enum.filter(rooms, fn {_room, membership_events} ->
       List.last(membership_events) == membership_type
     end)
+  end
+
+  defp listen_for_updates(rooms) do
+    Enum.each(rooms, &RoomServer.register_listener(&1.room_id, self()))
+  end
+
+  defp silence_updates(rooms) do
+    Enum.each(rooms, &RoomServer.unregister_listener(&1.room_id, self()))
   end
 end
