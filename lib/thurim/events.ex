@@ -46,7 +46,7 @@ defmodule Thurim.Events do
     |> Repo.all()
   end
 
-  def invite_state_events(room_id, sender) do
+  def invite_state_events(room_id, sender, since) when is_nil(since) do
     from(e in Event,
       where: e.room_id == ^room_id,
       where:
@@ -58,13 +58,18 @@ defmodule Thurim.Events do
     |> Enum.map(&StrippedEventData.new/1)
   end
 
-  def ranked_events() do
+  def invite_state_events(room_id, sender, since) do
     from(e in Event,
-      select: %{e | rank: row_number() |> over(order_by: e.inserted_at)}
+      where: e.room_id == ^room_id,
+      where:
+        e.type == "m.room.name" or
+          (e.type == "m.room.member" and e.content["membership"] == "invite" and
+             e.state_key == ^sender),
+      where: e.stream_ordering > ^since
     )
+    |> Repo.all()
+    |> Enum.map(&StrippedEventData.new/1)
   end
-
-  def timeline_for_room_id(room_id, since \\ nil)
 
   def timeline_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
@@ -75,10 +80,10 @@ defmodule Thurim.Events do
   end
 
   def timeline_for_room_id(room_id, since) when is_integer(since) do
-    from(re in subquery(ranked_events()),
-      where: re.rank > ^since,
-      where: re.room_id == ^room_id,
-      order_by: re.origin_server_ts
+    from(e in Event,
+      where: e.stream_ordering > ^since,
+      where: e.room_id == ^room_id,
+      order_by: e.origin_server_ts
     )
     |> Repo.all()
   end
@@ -221,9 +226,18 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
-  def state_events_for_room_id(room_id) do
+  def state_events_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
       where: e.room_id == ^room_id and not is_nil(e.state_key),
+      order_by: e.origin_server_ts
+    )
+    |> Repo.all()
+  end
+
+  def state_events_for_room_id(room_id, since) do
+    from(e in Event,
+      where: e.room_id == ^room_id and not is_nil(e.state_key),
+      where: e.stream_ordering > ^since,
       order_by: e.origin_server_ts
     )
     |> Repo.all()
@@ -252,7 +266,7 @@ defmodule Thurim.Events do
 
   def member_events(room_id) do
     from(e in Event,
-      select: %{room_id: e.room_id, events: fragment("array_agg(events.content->>'membership')")},
+      select: %{room_id: e.room_id, events: fragment("array_agg(?->>'membership')", e.content)},
       where: e.room_id == ^room_id and e.type == "m.room.member",
       group_by: e.room_id
     )

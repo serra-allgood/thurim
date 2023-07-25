@@ -52,7 +52,8 @@ defmodule Thurim.MixProject do
       {:ua_parser, "~> 1.8"},
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.0"},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:wait_for_it, "~> 1.1"}
     ]
   end
 

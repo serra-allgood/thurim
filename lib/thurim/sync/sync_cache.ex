@@ -1,4 +1,6 @@
 defmodule Thurim.Sync.SyncCache do
+  require WaitForIt
+
   use Nebulex.Cache,
     otp_app: :thurim,
     adapter: Nebulex.Adapters.Local
@@ -13,7 +15,7 @@ defmodule Thurim.Sync.SyncCache do
         check_sync(sender, filter, timeout, params, since)
 
       :error ->
-        build_sync(sender, filter, timeout, params)
+        build_sync(sender, filter, timeout, params, nil)
     end
   end
 
@@ -24,34 +26,18 @@ defmodule Thurim.Sync.SyncCache do
     end
   end
 
-  def build_sync(sender, filter, timeout, params, since \\ nil)
-
-  def build_sync(sender, filter, 0, params, since) when is_nil(since) do
-    Task.Supervisor.async(Thurim.SyncTaskSupervisor, fn ->
-      sync_helper(sender, filter, params)
-    end)
-    |> Task.await()
-  end
-
-  def build_sync(sender, filter, timeout, params, since) when is_nil(since) do
-    try do
-      Task.Supervisor.async(Thurim.SyncTaskSupervisor, fn ->
-        sync_helper(sender, filter, params, %{poll: true})
-      end)
-      |> Task.await(timeout)
-    catch
-      :exit, {:timeout, _} -> empty_state(since)
-    end
+  def build_sync(sender, filter, 0 = _timeout, params, since) do
+    {^sender, response} = sync_helper(sender, filter, params, since)
+    response
   end
 
   def build_sync(sender, filter, timeout, params, since) do
-    try do
-      Task.Supervisor.async(Thurim.SyncTaskSupervisor, fn ->
-        sync_helper(sender, filter, params, %{poll: true, since: since})
-      end)
-      |> Task.await(timeout)
-    catch
-      :exit, {:timeout, _} -> empty_state(since)
+    WaitForIt.case_wait sync_helper(sender, filter, params, since),
+      signal: :sync_update,
+      timeout: timeout do
+      {^sender, response} -> response
+    else
+      _ -> empty_state(since)
     end
   end
 
@@ -61,7 +47,8 @@ defmodule Thurim.Sync.SyncCache do
   2. Get current sync point, will be the next_batch in response
   3. For each room response type, diff from since and now and aggregate results
   """
-  def base_sync_helper(sender, filter, _params) do
+
+  def base_sync_helper(sender, filter, _params, since) do
     current_rooms = Rooms.all_user_rooms(sender)
 
     Events.max_stream_ordering()
@@ -75,8 +62,8 @@ defmodule Thurim.Sync.SyncCache do
         current_rooms
         |> filter_rooms("invite")
         |> Enum.reduce(invite, fn {room, _membership_events}, invite ->
-          invite_state_events = Events.invite_state_events(room.room_id, sender)
-          put_in(invite, room.room_id, InvitedRoom.new(invite_state_events))
+          invite_state_events = Events.invite_state_events(room.room_id, sender, since)
+          put_in(invite, [room.room_id], InvitedRoom.new(invite_state_events))
         end)
         |> Map.reject(&InvitedRoom.empty?/1)
       end)
@@ -85,39 +72,22 @@ defmodule Thurim.Sync.SyncCache do
         current_rooms
         |> filter_rooms("join")
         |> Enum.reduce(join, fn {room, _membership_events}, join ->
-          put_in(join, room.room_id, JoinedRoom.new(room.room_id, sender, filter))
+          put_in(join, [room.room_id], JoinedRoom.new(room.room_id, sender, filter, since))
         end)
         |> Map.reject(&JoinedRoom.empty?/1)
       end)
     end)
   end
 
-  def sync_helper(sender, filter, params, opts \\ %{poll: false, since: nil})
-
-  def sync_helper(sender, filter, params, %{poll: false, since: nil}) do
-    response = base_sync_helper(sender, filter, params)
+  def sync_helper(sender, filter, params, since) do
+    response = base_sync_helper(sender, filter, params, since)
 
     if !SyncState.empty?(response) do
       put({sender, nil}, response)
+      WaitForIt.signal(:sync_update)
     end
 
-    response
-  end
-
-  def sync_helper(sender, filter, params, %{poll: true, since: nil}) do
-    response = base_sync_helper(sender, filter, params)
-
-    if !SyncState.empty?(response) do
-      put({sender, nil}, response)
-    else
-      sync_helper(sender, filter, params, %{poll: true, since: nil})
-    end
-
-    response
-  end
-
-  def sync_helper(sender, filter, params, %{poll: false, since: since}) do
-    response
+    {sender, response}
   end
 
   defp empty_state(prev_batch) do

@@ -13,7 +13,7 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
   ]
 
   def new() do
-    %__MODULE__{
+    %{
       account_data: %{events: []},
       ephemereal: %{events: []},
       state: %{events: []},
@@ -36,25 +36,23 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
     }
   end
 
-  def new(room_id, mx_user_id, filter, since \\ nil)
-
-  def new(room_id, mx_user_id, filter, since) when is_nil(since) and is_nil(filter) do
-    timeline = Events.timeline_for_room_id(room_id)
+  def new(room_id, mx_user_id, _filter, since) do
+    timeline = Events.timeline_for_room_id(room_id, since)
     timeline_ids = Enum.map(timeline, & &1.id)
 
     state =
-      Events.state_events_for_room_id(room_id)
+      Events.state_events_for_room_id(room_id, since)
       |> Enum.filter(&(!Enum.member?(timeline_ids, &1.id)))
 
     new()
-    |> update_in(:summary, fn summary ->
+    |> update_in([:summary], fn summary ->
       heroes = Events.heroes_for_room_id(room_id, mx_user_id)
       invited_member_count = Events.invited_member_count(room_id)
       joined_member_count = Events.joined_member_count(room_id)
 
-      put_in(summary, "m.heroes", heroes)
-      |> put_in("m.invited_member_count", invited_member_count)
-      |> put_in("m.joined_member_count", joined_member_count)
+      put_in(summary, ["m.heroes"], heroes)
+      |> put_in(["m.invited_member_count"], invited_member_count)
+      |> put_in(["m.joined_member_count"], joined_member_count)
     end)
     |> put_in([:state, :events], state |> Enum.map(&Events.map_client_event(&1, true)))
     |> put_in([:timeline, :events], timeline |> Enum.map(&Events.map_client_event(&1, true)))
