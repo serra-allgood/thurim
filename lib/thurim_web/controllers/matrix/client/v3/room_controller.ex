@@ -204,7 +204,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
 
   def create_redaction(
         conn,
-        %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
+        %{"room_id" => room_id, "event_id" => _event_id, "txn_id" => txn_id} = _params
       ) do
     %{current_account: account, sender: sender, current_device: device} = conn.assigns
 
