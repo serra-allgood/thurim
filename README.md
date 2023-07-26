@@ -17,6 +17,7 @@ Thurim is developed against:
 After cloning the repo:
 
 * Install dependencies with `mix deps.get`
+* Create self-signed X.509 certificate: `mkdir -p priv/cert/; openssl req -x509 -newkey rsa:4096 -keyout priv/cert/selfsigned_key.pem -out priv/cert/selfsigned.pem -sha256 -days 365 -nodes`
 * Create and migrate your database with `mix ecto.setup`
 * Start Phoenix endpoint with `mix phx.server`
 
