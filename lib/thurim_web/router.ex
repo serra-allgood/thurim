@@ -31,7 +31,13 @@ defmodule ThurimWeb.Router do
     pipe_through :api
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
+        get "/login", UserController, :index
+        post "/login", UserController, :login
+        get "/register/available", UserController, :available
+      end
+
+      scope "/r0", V3 do
         get "/login", UserController, :index
         post "/login", UserController, :login
         get "/register/available", UserController, :available
@@ -39,7 +45,13 @@ defmodule ThurimWeb.Router do
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
+        pipe_through :interactive_auth
+
+        post "/register", UserController, :create
+      end
+
+      scope "/r0", V3 do
         pipe_through :interactive_auth
 
         post "/register", UserController, :create
@@ -47,7 +59,7 @@ defmodule ThurimWeb.Router do
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
         pipe_through :access_token
 
         post "/logout", UserController, :logout
@@ -78,18 +90,46 @@ defmodule ThurimWeb.Router do
         post "/keys/upload", KeysController, :upload
       end
 
-      scope "/v3", V3 do
+      scope "/r0", V3 do
         pipe_through :access_token
+
+        post "/logout", UserController, :logout
+        post "/logout/all", UserController, :logout_all
+        get "/account/whoami", UserController, :whoami
+        get "/pushrules", UserController, :push_rules
 
         post "/user/:user_id/filter", FilterController, :create
         get "/user/:user_id/filter/:filter_id", FilterController, :show
 
+        get "/presence/:user_id/status", PresenceController, :show
+        put "/presence/:user_id/status", PresenceController, :update
+
         get "/sync", SyncController, :index
+
+        post "/createRoom", RoomController, :create
+        get "/rooms/:room_id/event/:event_id", RoomController, :get_event
+        get "/rooms/:room_id/joined_members", RoomController, :joined_members
+        get "/rooms/:room_id/members", RoomController, :members
+        get "/rooms/:room_id/state", RoomController, :state
+        get "/rooms/:room_id/state/:event_type/:state_key", RoomController, :state_event
+        put "/rooms/:room_id/state/:event_type/:state_key", RoomController, :create_state_event
+        put "/rooms/:room_id/send/:event_type/:txn_id", RoomController, :send_message
+        put "/rooms/:room_id/redact/:event_id/:txn_id", RoomController, :create_redaction
+        get "/rooms/:room_id/messages", RoomController, :messages
+
+        post "/keys/query", KeysController, :query
+        post "/keys/upload", KeysController, :upload
       end
     end
 
     scope "/client", Client do
-      scope "/r0", R0 do
+      scope "/v3", V3 do
+        pipe_through [:interactive_auth, :access_token]
+
+        post "/account/password", UserController, :password
+      end
+
+      scope "/r0", V3 do
         pipe_through [:interactive_auth, :access_token]
 
         post "/account/password", UserController, :password

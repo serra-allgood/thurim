@@ -30,3 +30,6 @@ thurim-*.tar
 /priv/cert/
 
 fly.toml
+
+Mnesia*
+.DS_Store

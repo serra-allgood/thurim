@@ -6,8 +6,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   require Logger
   import Phoenix.Controller, only: [json: 2]
 
-  @matrix_config Application.get_env(:thurim, :matrix)
-  @flows @matrix_config[:auth_flows]
+  @flows Application.compile_env(:thurim, [:matrix, :auth_flows])
 
   def init(options), do: options
 
@@ -61,15 +60,17 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
     end
   end
 
+  defp check_stage(conn, _auth), do: conn
+
   defp check_completed_stages(conn) do
-    auth = Map.get(conn.params, "auth")
+    %{"auth" => auth} = conn.params
     session = get_session(auth["session"])
 
     check =
       Enum.map(@flows, fn flow -> flow.stages -- session.completed_stages end)
       |> Enum.find(fn stages -> length(stages) == 0 end)
 
-    if check do
+    if check || String.match?(conn.request_path, ~r{register}) do
       set_session(%{session | auth_completed: true})
     end
 
@@ -91,7 +92,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
   end
 
   defp pass_or_challenge(conn, _session) do
-    auth = Map.get(conn.params, "auth")
+    %{"auth" => auth} = conn.params
     session = get_session(auth["session"])
 
     if session.auth_completed do
@@ -103,7 +104,7 @@ defmodule ThurimWeb.Plugs.InteractiveAuth do
         flows: @flows,
         session: session.id,
         params: [],
-        completed: []
+        completed: session.completed_stages
       })
       |> Conn.halt()
     end

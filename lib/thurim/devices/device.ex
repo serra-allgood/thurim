@@ -1,7 +1,6 @@
 defmodule Thurim.Devices.Device do
   use Ecto.Schema
-  alias Thurim.User.Account
-  alias Thurim.AccessTokens.AccessToken
+  alias Thurim.{AccessTokens.AccessToken, User.Account}
   import Ecto.Changeset
 
   @primary_key {:session_id, :binary_id, autogenerate: true}

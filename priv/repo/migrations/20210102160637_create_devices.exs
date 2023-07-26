@@ -9,11 +9,19 @@ defmodule Thurim.Repo.Migrations.CreateDevices do
       add :last_seen_ts, :naive_datetime
       add :ip, :text
       add :user_agent, :text
-      add :localpart, references(:accounts, column: :localpart, on_delete: :delete_all, type: :text)
+
+      add :localpart,
+          references(:accounts,
+            column: :localpart,
+            on_delete: :delete_all,
+            type: :text
+          ),
+          null: false
 
       timestamps()
     end
 
+    create unique_index(:devices, :device_id)
     create index(:devices, [:localpart])
     create index(:devices, [:localpart, :device_id])
   end

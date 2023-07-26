@@ -7,10 +7,7 @@ defmodule Thurim.Events do
   alias Ecto.Multi
   alias Thurim.Repo
 
-  alias Thurim.Events.Event
-  alias Thurim.Events.EventStateKey
-  alias Thurim.Events.EventData
-  alias Thurim.Events.StrippedEventData
+  alias Thurim.Events.{Event, EventData, EventStateKey, StrippedEventData}
   alias Thurim.Transactions
 
   @default_power_levels %{
@@ -37,9 +34,42 @@ defmodule Thurim.Events do
     "state_default" => 50,
     "users_default" => 0
   }
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
-  def timeline_for_room_id(room_id, since \\ nil)
+  def max_stream_ordering() do
+    from(e in Event, select: max(e.stream_ordering))
+    |> Repo.one()
+  end
+
+  def for_room(room_id) do
+    from(e in Event, where: e.room_id == ^room_id, order_by: e.origin_server_ts)
+    |> Repo.all()
+  end
+
+  def invite_state_events(room_id, sender, since) when is_nil(since) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where:
+        e.type == "m.room.name" or
+          (e.type == "m.room.member" and e.content["membership"] == "invite" and
+             e.state_key == ^sender)
+    )
+    |> Repo.all()
+    |> Enum.map(&StrippedEventData.new/1)
+  end
+
+  def invite_state_events(room_id, sender, since) do
+    from(e in Event,
+      where: e.room_id == ^room_id,
+      where:
+        e.type == "m.room.name" or
+          (e.type == "m.room.member" and e.content["membership"] == "invite" and
+             e.state_key == ^sender),
+      where: e.stream_ordering > ^since
+    )
+    |> Repo.all()
+    |> Enum.map(&StrippedEventData.new/1)
+  end
 
   def timeline_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
@@ -51,8 +81,8 @@ defmodule Thurim.Events do
 
   def timeline_for_room_id(room_id, since) when is_integer(since) do
     from(e in Event,
+      where: e.stream_ordering > ^since,
       where: e.room_id == ^room_id,
-      where: e.origin_server_ts > ^since,
       order_by: e.origin_server_ts
     )
     |> Repo.all()
@@ -196,9 +226,18 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
-  def state_events_for_room_id(room_id) do
+  def state_events_for_room_id(room_id, since) when is_nil(since) do
     from(e in Event,
       where: e.room_id == ^room_id and not is_nil(e.state_key),
+      order_by: e.origin_server_ts
+    )
+    |> Repo.all()
+  end
+
+  def state_events_for_room_id(room_id, since) do
+    from(e in Event,
+      where: e.room_id == ^room_id and not is_nil(e.state_key),
+      where: e.stream_ordering > ^since,
       order_by: e.origin_server_ts
     )
     |> Repo.all()
@@ -209,6 +248,27 @@ defmodule Thurim.Events do
       where: e.room_id == ^room_id and e.type == "m.room.member" and e.state_key != ^sender,
       order_by: e.origin_server_ts,
       select: e.state_key
+    )
+    |> Repo.all()
+  end
+
+  def invited_member_count(room_id) do
+    member_events(room_id)
+    |> Enum.filter(fn %{events: events} -> List.last(events) == "invite" end)
+    |> Enum.count()
+  end
+
+  def joined_member_count(room_id) do
+    member_events(room_id)
+    |> Enum.filter(fn %{events: events} -> List.last(events) == "join" end)
+    |> Enum.count()
+  end
+
+  def member_events(room_id) do
+    from(e in Event,
+      select: %{room_id: e.room_id, events: fragment("array_agg(?->>'membership')", e.content)},
+      where: e.room_id == ^room_id and e.type == "m.room.member",
+      group_by: e.room_id
     )
     |> Repo.all()
   end

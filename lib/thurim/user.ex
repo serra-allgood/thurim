@@ -16,7 +16,7 @@ defmodule Thurim.User do
   alias Thurim.PushRules
   alias Thurim.Events
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
   def localpart_available?(localpart) do
     get_account(localpart) == nil
@@ -28,6 +28,16 @@ defmodule Thurim.User do
 
   def generate_localpart() do
     UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
+  end
+
+  def get_account_data(room_id, mx_user_id, since) do
+    from(a in AccountData,
+      where: a.room_id == ^room_id,
+      where: a.localpart == ^extract_localpart(mx_user_id),
+      where: a.inserted_at >= ^DateTime.from_unix!(since, :millisecond),
+      select: %{"type" => a.type, "content" => a.content}
+    )
+    |> Repo.all()
   end
 
   def permission_to_create_event?(sender, room_id, event_type, is_state_event) do
@@ -167,6 +177,14 @@ defmodule Thurim.User do
         %{"displayname" => displayname, "avatar_url" => avatar_url}
       end
     )
+  end
+
+  def in_room?(sender, room_id) do
+    Events.latest_membership_type(room_id, sender) == "join"
+  end
+
+  def previously_in_room?(sender, room_id) do
+    Events.user_previously_in_room?(sender, room_id)
   end
 
   def extract_localpart(user_id) do

@@ -2,6 +2,8 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
   use Ecto.Migration
 
   def change do
+    execute("CREATE SEQUENCE stream_ordering_seq")
+
     create table(:events, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :depth, :bigint, null: false
@@ -29,6 +31,10 @@ defmodule Thurim.Repo.Migrations.CreateEvents do
 
       timestamps()
     end
+
+    execute(
+      "ALTER TABLE events ADD COLUMN stream_ordering bigint DEFAULT nextval('stream_ordering_seq')"
+    )
 
     create index(:events, [:room_id])
     create unique_index(:events, [:event_id])

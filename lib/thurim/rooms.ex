@@ -5,15 +5,41 @@ defmodule Thurim.Rooms do
 
   import Ecto.Query, warn: false
   alias Ecto.Multi
-  alias Thurim.Repo
-  alias Thurim.Rooms.Room
-  alias Thurim.Rooms.RoomAlias
-  alias Thurim.Events
+  alias Thurim.{Events, Events.Event, Repo}
+  alias Thurim.Rooms.{Room, RoomAlias}
 
-  @domain Application.get_env(:thurim, :matrix)[:domain]
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
-  def generate_room_id() do
+  def generate_room_id do
     "!" <> UUID.uuid4() <> ":" <> @domain
+  end
+
+  def all_user_rooms(mx_user_id) do
+    from(r in Room,
+      join: e in Event,
+      on: e.room_id == r.room_id,
+      where: e.state_key == ^mx_user_id,
+      where: e.type == "m.room.member",
+      group_by: r.id,
+      select: {r, fragment("array_agg(?->>'membership')", e.content)}
+    )
+    |> Repo.all()
+  end
+
+  def user_rooms(mx_user_id, join_type \\ nil)
+
+  def user_rooms(mx_user_id, join_type) when is_nil(join_type) do
+    all_user_rooms(mx_user_id)
+    |> Enum.filter(fn {_room, membership_events} ->
+      !Enum.member?(~w(leave kick ban), List.last(membership_events))
+    end)
+    |> Enum.map(fn {room, _events} -> room end)
+  end
+
+  def user_rooms(mx_user_id, join_type) do
+    all_user_rooms(mx_user_id)
+    |> Enum.filter(fn {_room, membership_events} -> List.last(membership_events) == join_type end)
+    |> Enum.map(fn {room, _events} -> room end)
   end
 
   @doc """
@@ -95,7 +121,7 @@ defmodule Thurim.Rooms do
       end
 
     multi =
-      case Map.get(attrs, "preset", false) do
+      case attrs["preset"] do
         "private_chat" ->
           multi
           |> Multi.run(:create_private_join_rule, fn _repo, _changes ->

@@ -1,11 +1,7 @@
-defmodule ThurimWeb.Matrix.Client.R0.RoomController do
+defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.Sync.SyncServer
-  alias Thurim.Rooms
-  alias Thurim.Events
-  alias Thurim.User
-  alias Thurim.Transactions
+  alias Thurim.{Events, Rooms, Rooms.RoomSupervisor, Rooms.RoomServer, User, Transactions}
 
   # Event shape:
   # {
@@ -15,7 +11,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   #   name?: string
   # }
   def create(conn, params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
 
     result =
       Map.put(params, "sender", sender)
@@ -23,10 +19,10 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
     case result do
       {:ok, %{room: room} = _changes} ->
-        SyncServer.add_room(room, sender)
+        RoomSupervisor.start_room(room.room_id)
         json(conn, %{room_id: room.room_id})
 
-      {:error, _name, changeset, _changes} ->
+      {:error, changeset} ->
         send_changeset_error_to_json(conn, changeset)
     end
   end
@@ -60,9 +56,9 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   end
 
   def joined_members(conn, %{"room_id" => room_id} = _params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
 
-    if SyncServer.user_in_room?(sender, room_id) do
+    if User.in_room?(sender, room_id) do
       response = User.joined_user_ids_in_room(room_id)
       json(conn, %{"joined" => response})
     else
@@ -71,12 +67,12 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   end
 
   def members(conn, %{"room_id" => room_id} = params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
     at_time = Map.get(params, "at", :infinity)
-    membership = Map.get(params, "membership", nil)
-    not_membership = Map.get(params, "not_membership", nil)
+    membership = Map.get(params, "membership")
+    not_membership = Map.get(params, "not_membership")
 
-    if SyncServer.user_in_room?(sender, room_id) do
+    if User.in_room?(sender, room_id) do
       response =
         User.membership_events_in_room(room_id, membership, not_membership, at_time)
         |> Enum.map(&Events.map_client_event/1)
@@ -88,10 +84,12 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   end
 
   def state(conn, %{"room_id" => room_id} = _params) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
 
-    if SyncServer.user_in_room?(sender, room_id) do
-      response = Events.state_events_for_room_id(room_id) |> Enum.map(&Events.map_client_event/1)
+    if User.in_room?(sender, room_id) do
+      response =
+        Events.state_events_for_room_id(room_id, nil) |> Enum.map(&Events.map_client_event/1)
+
       json(conn, response)
     else
       json_error(conn, :m_forbidden)
@@ -102,16 +100,16 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         conn,
         %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
       ) do
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{sender: sender} = conn.assigns
 
     cond do
-      SyncServer.user_in_room?(sender, room_id) ->
+      User.in_room?(sender, room_id) ->
         case Events.latest_state_event_of_type_in_room_id(room_id, event_type, state_key) do
           nil -> json_error(conn, :m_not_found)
           event -> json(conn, event.content)
         end
 
-      Events.user_previously_in_room?(sender, room_id) ->
+      User.previously_in_room?(sender, room_id) ->
         leave_event =
           Events.latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
 
@@ -131,8 +129,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         conn,
         %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
       ) do
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+    %{sender: sender} = conn.assigns
 
     if User.permission_to_create_event?(sender, room_id, event_type, true) do
       case Events.create_event(
@@ -147,7 +144,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
              state_key
            ) do
         {:ok, event} ->
-          SyncServer.append_state_event(sender, device, room_id, event)
+          RoomServer.notify_listeners(room_id)
           json(conn, %{"event_id" => event.event_id})
 
         {:error, _name, changeset, _changes} ->
@@ -159,8 +156,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
   end
 
   def messages(conn, %{"room_id" => room_id, "dir" => dir} = params) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
+    %{current_account: account, sender: sender} = conn.assigns
 
     limit = Map.get(params, "limit", 10)
     filter = Map.get(params, "filter", nil) |> get_filter(account)
@@ -168,20 +164,20 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
     to = Map.get(params, "to", nil)
 
     from =
-      if from == nil do
-        Events.latest_timestamp()
+      if is_nil(from) do
+        Events.max_stream_ordering()
       else
         String.to_integer(from)
       end
 
     to =
-      if to == nil do
+      if is_nil(to) do
         nil
       else
         String.to_integer(to)
       end
 
-    if SyncServer.user_in_room?(sender, room_id) do
+    if User.in_room?(sender, room_id) do
       {chunk, state, end_token} = Events.events_in_room_id(room_id, dir, filter, limit, from, to)
 
       response =
@@ -210,9 +206,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         conn,
         %{"room_id" => room_id, "event_id" => event_id, "txn_id" => txn_id} = _params
       ) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+    %{current_account: account, sender: sender, current_device: device} = conn.assigns
 
     txn =
       Transactions.get(
@@ -225,7 +219,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       txn != nil ->
         json(conn, %{event_id: txn.event_id})
 
-      SyncServer.user_in_room?(sender, room_id) ->
+      User.in_room?(sender, room_id) ->
         json_error(conn, :t_not_implemented)
 
       true ->
@@ -237,9 +231,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
         conn,
         %{"room_id" => room_id, "event_type" => event_type, "txn_id" => txn_id} = _params
       ) do
-    account = Map.fetch!(conn.assigns, :current_account)
-    sender = Map.fetch!(conn.assigns, :sender)
-    device = Map.fetch!(conn.assigns, :current_device)
+    %{current_account: account, sender: sender, current_device: device} = conn.assigns
 
     txn =
       Transactions.get(
@@ -249,10 +241,10 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
       )
 
     cond do
-      txn != nil ->
+      !is_nil(txn) ->
         json(conn, %{event_id: txn.event_id})
 
-      SyncServer.user_in_room?(sender, room_id) ->
+      User.in_room?(sender, room_id) ->
         case Jason.encode(conn.body_params) do
           {:ok, _} ->
             event_params = %{
@@ -270,7 +262,7 @@ defmodule ThurimWeb.Matrix.Client.R0.RoomController do
 
             case Events.send_message(event_params, txn_params) do
               {:ok, %{event: event} = _changes} ->
-                SyncServer.append_event(sender, device, room_id, event)
+                RoomServer.notify_listeners(room_id)
                 json(conn, %{event_id: event.event_id})
 
               {:error, _name, changeset, _changes} ->

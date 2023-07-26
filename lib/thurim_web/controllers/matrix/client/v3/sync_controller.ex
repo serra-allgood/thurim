@@ -1,8 +1,7 @@
 defmodule ThurimWeb.Matrix.Client.V3.SyncController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.Sync.SyncServer
-  alias Thurim.Filters
+  alias Thurim.Sync.SyncCache
 
   # Shape of params:
   # {
@@ -13,19 +12,12 @@ defmodule ThurimWeb.Matrix.Client.V3.SyncController do
   #   timeout: integer
   # }
   def index(conn, params) do
-    device = Map.get(conn.assigns, :current_device)
-    account = Map.get(conn.assigns, :current_account)
-    sender = Map.get(conn.assigns, :sender)
+    %{current_account: account, sender: sender} = conn.assigns
 
-    filter =
-      case Map.fetch(params, "filter") do
-        {:ok, filter_id} -> Filters.get_by(id: filter_id, localpart: account.localpart)
-        :error -> nil
-      end
-
+    filter = Map.get(params, "filter") |> get_filter(account)
     timeout = Map.get(params, "timeout", "0") |> String.to_integer()
 
-    case SyncServer.build_sync(sender, device, filter, timeout, params) do
+    case SyncCache.fetch_sync(sender, filter, timeout, params) do
       :error ->
         json_error(conn, :m_unknown_error)
 

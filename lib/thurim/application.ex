@@ -9,17 +9,16 @@ defmodule Thurim.Application do
     children = [
       # Start the Ecto repository
       Thurim.Repo,
-      # Start various gen_servers
-      {Thurim.AccessTokens.AccessTokenCache, []},
-      {ThurimWeb.AuthSessionCache, []},
-      {Horde.Registry, [name: Thurim.Registry, keys: :unique]},
-      {Horde.DynamicSupervisor, [name: Thurim.DistributedSupervisor, strategy: :one_for_one]},
-      {Thurim.Sync.SyncServer, []},
-      {Thurim.Federation.KeyServer, []},
+      # Start needed supervisors
+      Thurim.CacheSupervisor,
+      {Registry, keys: :unique, name: Registry.Room},
+      Thurim.Rooms.RoomSupervisor,
+      Thurim.Federation.KeyServer,
       # Start the Telemetry supervisor
       ThurimWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Thurim.PubSub},
+      ThurimWeb.Presence,
       # Start the Endpoint (http/https)
       ThurimWeb.Endpoint
       # Start a worker by calling: Thurim.Worker.start_link(arg)
