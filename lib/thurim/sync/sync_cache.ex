@@ -101,7 +101,6 @@ defmodule Thurim.Sync.SyncCache do
         receive do
           {:room_update, room_id} ->
             if current_rooms |> Enum.map(& &1.room_id) |> Enum.member?(room_id) do
-              silence_updates(current_rooms)
               sync_helper(sender, filter, params, since)
             end
         end

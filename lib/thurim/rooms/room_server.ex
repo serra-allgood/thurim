@@ -37,6 +37,6 @@ defmodule Thurim.Rooms.RoomServer do
   @impl true
   def handle_cast(:notify_listeners, state) do
     Enum.each(state.listeners, fn pid -> send(pid, {:room_update, state.room_id}) end)
-    {:noreply, state}
+    {:noreply, %{state | listeners: MapSet.new()}}
   end
 end
