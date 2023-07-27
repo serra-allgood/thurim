@@ -8,9 +8,9 @@ The project has just begun and collaborators are more than welcome. Come discuss
 
 Thurim is developed against:
 
-* Erlang 22.2.1
-* Elixir 1.12.3
-* Postgresql 13.0
+* Erlang 26.0.1
+* Elixir 1.14.5
+* Postgresql 14.8
 
 ## Installation
 
