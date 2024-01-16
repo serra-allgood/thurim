@@ -88,6 +88,8 @@ defmodule ThurimWeb.Router do
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
+
+        get "/directory/room/:room_alias", DirectoryController, :room_alias
       end
 
       scope "/r0", V3 do

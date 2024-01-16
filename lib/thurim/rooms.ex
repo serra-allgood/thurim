@@ -14,6 +14,21 @@ defmodule Thurim.Rooms do
     "!" <> UUID.uuid4() <> ":" <> @domain
   end
 
+  def valid_alias?(room_alias) do
+    [head | _domain] = String.split(room_alias, ":", parts: 2)
+    String.starts_with?(head, "#")
+  end
+
+  def our_domain?(room_alias) do
+    domain = String.split(room_alias, ":", parts: 2) |> List.last()
+    domain == @domain
+  end
+
+  def id_from_alias(room_alias) do
+    from(ra in RoomAlias, where: ra.alias == ^room_alias, select: "room_id")
+    |> Repo.one()
+  end
+
   def all_user_rooms(mx_user_id) do
     from(r in Room,
       join: e in Event,
@@ -90,7 +105,9 @@ defmodule Thurim.Rooms do
 
   """
   def create_room(attrs \\ %{}) do
-    attrs = Map.put(attrs, "room_id", generate_room_id())
+    attrs =
+      Map.put(attrs, "room_id", generate_room_id())
+      |> Map.put("creator_id", Map.fetch!(attrs, "sender"))
 
     multi =
       Multi.new()
@@ -113,9 +130,9 @@ defmodule Thurim.Rooms do
       if room_alias do
         multi
         |> Multi.run(:create_canonical_alias, fn _repo, _changes ->
-          Events.create_event(attrs["room_id"], attrs, "m.room.canonical_alias")
+          Events.create_event(attrs, "m.room.canonical_alias")
         end)
-        |> Multi.run(:create_alias, fn _repo, _changes -> create_room_alias(attrs) end)
+        |> Multi.insert(:create_alias, RoomAlias.changeset(%RoomAlias{alias: room_alias}, attrs))
       else
         multi
       end
@@ -182,7 +199,7 @@ defmodule Thurim.Rooms do
       if name do
         multi
         |> Multi.run(:create_name_event, fn _repo, _changes ->
-          Events.create_event(attrs["room_id"], attrs, "m.room.name")
+          Events.create_event(attrs, "m.room.name")
         end)
       else
         multi
@@ -194,7 +211,7 @@ defmodule Thurim.Rooms do
       if topic do
         multi
         |> Multi.run(:create_topic_event, fn _repo, _changes ->
-          Events.create_event(attrs["room_id"], attrs, "m.room.topic")
+          Events.create_event(attrs, "m.room.topic")
         end)
       else
         multi

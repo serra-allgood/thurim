@@ -22,31 +22,32 @@ defmodule ThurimWeb.Matrix.VersionsController do
         "v1.8",
         "v1.9"
       ],
-      unstable_features: %{
-        "org.matrix.label_based_filtering": true,
-        "org.matrix.e2e_cross_signing": true,
-        "org.matrix.msc2432": true,
-        "uk.half-shot.msc2666.query_mutual_rooms": true,
-        "io.element.e2ee_forced.public": false,
-        "io.element.e2ee_forced.private": false,
-        "io.element.e2ee_forced.trusted_private": false,
-        "org.matrix.msc3026.busy_presence": false,
-        "org.matrix.msc2285.stable": true,
-        "org.matrix.msc3827.stable": true,
-        "org.matrix.msc3440.stable": true,
-        "org.matrix.msc3771": true,
-        "org.matrix.msc3773": false,
-        "fi.mau.msc2815": false,
-        "fi.mau.msc2659.stable": true,
-        "org.matrix.msc3882": false,
-        "org.matrix.msc3881": false,
-        "org.matrix.msc3874": false,
-        "org.matrix.msc3886": false,
-        "org.matrix.msc3912": false,
-        "org.matrix.msc3981": false,
-        "org.matrix.msc3391": false,
-        "org.matrix.msc4069": false
-      }
+      unstable_features:
+        %{
+          #   "org.matrix.label_based_filtering": true,
+          #   "org.matrix.e2e_cross_signing": true,
+          #   "org.matrix.msc2432": true,
+          #   "uk.half-shot.msc2666.query_mutual_rooms": true,
+          #   "io.element.e2ee_forced.public": false,
+          #   "io.element.e2ee_forced.private": false,
+          #   "io.element.e2ee_forced.trusted_private": false,
+          #   "org.matrix.msc3026.busy_presence": false,
+          #   "org.matrix.msc2285.stable": true,
+          #   "org.matrix.msc3827.stable": true,
+          #   "org.matrix.msc3440.stable": true,
+          #   "org.matrix.msc3771": true,
+          #   "org.matrix.msc3773": false,
+          #   "fi.mau.msc2815": false,
+          #   "fi.mau.msc2659.stable": true,
+          #   "org.matrix.msc3882": false,
+          #   "org.matrix.msc3881": false,
+          #   "org.matrix.msc3874": false,
+          #   "org.matrix.msc3886": false,
+          #   "org.matrix.msc3912": false,
+          #   "org.matrix.msc3981": false,
+          #   "org.matrix.msc3391": false,
+          #   "org.matrix.msc4069": false
+        }
     })
   end
 end

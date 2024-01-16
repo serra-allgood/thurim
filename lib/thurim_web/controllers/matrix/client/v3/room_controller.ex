@@ -31,7 +31,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
         RoomSupervisor.start_room(room.room_id)
         json(conn, %{room_id: room.room_id})
 
-      {:error, changeset} ->
+      {:error, _step, changeset} ->
         send_changeset_error_to_json(conn, changeset)
     end
   end
