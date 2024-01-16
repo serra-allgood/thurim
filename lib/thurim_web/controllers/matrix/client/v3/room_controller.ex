@@ -1,7 +1,16 @@
 defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.{Events, Rooms, Rooms.RoomSupervisor, Rooms.RoomServer, User, Transactions}
+
+  alias Thurim.{
+    Events,
+    RoomMembership,
+    Rooms,
+    Rooms.RoomSupervisor,
+    Rooms.RoomServer,
+    User,
+    Transactions
+  }
 
   # Event shape:
   # {
@@ -58,8 +67,8 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   def joined_members(conn, %{"room_id" => room_id} = _params) do
     %{sender: sender} = conn.assigns
 
-    if User.in_room?(sender, room_id) do
-      response = User.joined_user_ids_in_room(room_id)
+    if RoomMembership.in_room?(sender, room_id) do
+      response = RoomMembership.joined_user_ids_in_room(room_id)
       json(conn, %{"joined" => response})
     else
       json_error(conn, :m_forbidden)
@@ -72,9 +81,9 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     membership = Map.get(params, "membership")
     not_membership = Map.get(params, "not_membership")
 
-    if User.in_room?(sender, room_id) do
+    if RoomMembership.in_room?(sender, room_id) do
       response =
-        User.membership_events_in_room(room_id, membership, not_membership, at_time)
+        RoomMembership.membership_events_in_room(room_id, membership, not_membership, at_time)
         |> Enum.map(&Events.map_client_event/1)
 
       json(conn, %{"chunk" => response})
@@ -86,7 +95,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   def state(conn, %{"room_id" => room_id} = _params) do
     %{sender: sender} = conn.assigns
 
-    if User.in_room?(sender, room_id) do
+    if RoomMembership.in_room?(sender, room_id) do
       response =
         Events.state_events_for_room_id(room_id, nil) |> Enum.map(&Events.map_client_event/1)
 
@@ -103,13 +112,13 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     %{sender: sender} = conn.assigns
 
     cond do
-      User.in_room?(sender, room_id) ->
+      RoomMembership.in_room?(sender, room_id) ->
         case Events.latest_state_event_of_type_in_room_id(room_id, event_type, state_key) do
           nil -> json_error(conn, :m_not_found)
           event -> json(conn, event.content)
         end
 
-      User.previously_in_room?(sender, room_id) ->
+      RoomMembership.previously_in_room?(sender, room_id) ->
         leave_event =
           Events.latest_state_event_of_type_in_room_id(room_id, "m.room.member", sender)
 
@@ -177,7 +186,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
         String.to_integer(to)
       end
 
-    if User.in_room?(sender, room_id) do
+    if RoomMembership.in_room?(sender, room_id) do
       {chunk, state, end_token} = Events.events_in_room_id(room_id, dir, filter, limit, from, to)
 
       response =
@@ -219,7 +228,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       txn != nil ->
         json(conn, %{event_id: txn.event_id})
 
-      User.in_room?(sender, room_id) ->
+      RoomMembership.in_room?(sender, room_id) ->
         json_error(conn, :t_not_implemented)
 
       true ->
@@ -244,7 +253,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       !is_nil(txn) ->
         json(conn, %{event_id: txn.event_id})
 
-      User.in_room?(sender, room_id) ->
+      RoomMembership.in_room?(sender, room_id) ->
         case Jason.encode(conn.body_params) do
           {:ok, _} ->
             event_params = %{

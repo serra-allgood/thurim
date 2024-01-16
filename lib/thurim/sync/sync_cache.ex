@@ -6,7 +6,8 @@ defmodule Thurim.Sync.SyncCache do
     adapter: Nebulex.Adapters.Local
 
   alias Thurim.Sync.SyncState
-  alias Thurim.Sync.SyncState.{InvitedRoom, JoinedRoom, KnockedRoom, LeftRoom}
+  # , KnockedRoom}
+  alias Thurim.Sync.SyncState.{InvitedRoom, JoinedRoom, LeftRoom}
   alias Thurim.{Events, Rooms, Rooms.RoomServer}
 
   def fetch_sync(sender, filter, timeout, params) do
@@ -81,6 +82,24 @@ defmodule Thurim.Sync.SyncCache do
         end)
         |> Map.reject(&JoinedRoom.empty?/1)
       end)
+      # Add left rooms
+      |> update_in([:leave], fn left ->
+        current_rooms
+        |> filter_rooms("leave")
+        |> Enum.reduce(left, fn {room, _membership_events}, left ->
+          put_in(left, [room.room_id], LeftRoom.new(room.room_id, filter, since))
+        end)
+        |> Map.reject(&LeftRoom.empty?/1)
+      end)
+
+      # TODO: Add knocked rooms
+      # |> update_in([:knock], fn knock ->
+      #   current_rooms
+      #   |> filter_rooms("knock")
+      #   |> Enum.reduce(knock, fn {room, _membership_events}, knock ->
+      #     put_in(knock, [room.room_id], KnockedRoom.new(room.room_id, filter, since))
+      #   end)
+      # end)
     end)
   end
 

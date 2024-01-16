@@ -56,7 +56,7 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
     end)
     |> put_in([:state, :events], state |> Enum.map(&Events.map_client_event(&1, true)))
     |> put_in([:timeline, :events], timeline |> Enum.map(&Events.map_client_event(&1, true)))
-    |> put_in([:timeline, :prev_batch], "0")
+    |> put_in([:timeline, :prev_batch], since)
     |> put_in([:timeline, :limited], false)
   end
 
