@@ -35,6 +35,7 @@ defmodule ThurimWeb.Router do
         get "/login", UserController, :index
         post "/login", UserController, :login
         get "/register/available", UserController, :available
+        get "/publicRooms", RoomController, :index
       end
 
       scope "/r0", V3 do
@@ -85,6 +86,7 @@ defmodule ThurimWeb.Router do
         put "/rooms/:room_id/send/:event_type/:txn_id", RoomController, :send_message
         put "/rooms/:room_id/redact/:event_id/:txn_id", RoomController, :create_redaction
         get "/rooms/:room_id/messages", RoomController, :messages
+        post "/publicRooms", RoomController, :public_rooms
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload

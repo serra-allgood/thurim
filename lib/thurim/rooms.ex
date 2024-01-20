@@ -25,8 +25,77 @@ defmodule Thurim.Rooms do
   end
 
   def id_from_alias(room_alias) do
-    from(ra in RoomAlias, where: ra.alias == ^room_alias, select: "room_id")
+    name = extract_name_from_alias(room_alias)
+
+    from(ra in RoomAlias, where: ra.alias == ^name, select: "room_id")
     |> Repo.one()
+  end
+
+  def extract_name_from_alias(room_alias) do
+    [head | _tail] = String.split(room_alias, ":", parts: 2)
+    "#" <> name = head
+    name
+  end
+
+  def public_rooms(server, limit, since) do
+    if is_nil(server) do
+      offset =
+        if !is_nil(limit) && !is_nil(since) do
+          String.to_integer(limit) * String.to_integer(since)
+        else
+          0
+        end
+
+      query =
+        from(r in Room,
+          join: e in Event,
+          on: e.room_id == r.room_id,
+          left_join: ev in Event,
+          on: ev.room_id == r.room_id and ev.type == "m.room.member",
+          join: eve in Event,
+          on: eve.room_id == r.room_id,
+          where: fragment("?->>'membership'", ev.content) == "join",
+          where: fragment("?->>'join_rule'", e.content) == "public",
+          group_by: r.id,
+          select: %{
+            room: r,
+            event_content: fragment("array_agg(?)", eve.content),
+            member_count: count(ev.id, :distinct)
+          },
+          order_by: [desc: count(ev.id, :distinct)]
+        )
+
+      result =
+        if !is_nil(limit),
+          do: query |> limit(^limit) |> offset(^offset) |> Repo.all(),
+          else:
+            query
+            |> Repo.all()
+
+      %{
+        chunk: result |> Enum.map(&public_room_chunk/1),
+        total_room_count_estimate: result |> length(),
+        next_batch: offset
+      }
+    end
+  end
+
+  def public_room_chunk(%{room: room, member_count: member_count, event_content: event_content}) do
+    IO.inspect(event_content)
+
+    find_property = fn property ->
+      content = event_content |> Enum.find(&(!is_nil(Map.get(&1, property))))
+      if is_nil(content), do: nil, else: Map.fetch!(content, property)
+    end
+
+    %{
+      guest_can_join: find_property.("guest_access") != "forbidden",
+      num_joined_members: member_count,
+      name: find_property.("name"),
+      room_id: room.room_id,
+      # TODO: Implement world_readable
+      world_readable: false
+    }
   end
 
   def all_user_rooms(mx_user_id) do
@@ -142,37 +211,37 @@ defmodule Thurim.Rooms do
         "private_chat" ->
           multi
           |> Multi.run(:create_private_join_rule, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.join_rules", "invite", 4)
+            Events.create_event(attrs, "m.room.join_rules", "invite")
           end)
           |> Multi.run(:create_history_visibility, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+            Events.create_event(attrs, "m.room.history_visibility", "shared")
           end)
           |> Multi.run(:create_guest_access, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.guest_access", "can_join", 6)
+            Events.create_event(attrs, "m.room.guest_access", "can_join")
           end)
 
         "public_chat" ->
           multi
           |> Multi.run(:create_public_join_rule, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.join_rules", "public", 4)
+            Events.create_event(attrs, "m.room.join_rules", "public")
           end)
           |> Multi.run(:create_history_visibility, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+            Events.create_event(attrs, "m.room.history_visibility", "shared")
           end)
           |> Multi.run(:create_guest_access, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.guest_access", "forbidden", 6)
+            Events.create_event(attrs, "m.room.guest_access", "forbidden")
           end)
 
         "trusted_private_chat" ->
           multi
           |> Multi.run(:create_private_join_rule, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.join_rules", "invite", 4)
+            Events.create_event(attrs, "m.room.join_rules", "invite")
           end)
           |> Multi.run(:create_history_visibility, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.history_visibility", "shared", 5)
+            Events.create_event(attrs, "m.room.history_visibility", "shared")
           end)
           |> Multi.run(:create_guest_access, fn _repo, _changes ->
-            Events.create_event(attrs, "m.room.guest_access", "can_join", 6)
+            Events.create_event(attrs, "m.room.guest_access", "can_join")
           end)
 
         _ ->

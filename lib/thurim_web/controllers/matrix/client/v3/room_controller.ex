@@ -12,6 +12,22 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     Transactions
   }
 
+  def index(conn, params) do
+    server = Map.get(params, "server")
+    limit = Map.get(params, "limit")
+    since = Map.get(params, "since")
+    response = Rooms.public_rooms(server, limit, since)
+    json(conn, response)
+  end
+
+  def public_rooms(conn, params) do
+    server = Map.get(params, "server")
+    limit = Map.get(params, "limit")
+    since = Map.get(params, "since")
+    response = Rooms.public_rooms(server, limit, since)
+    json(conn, response)
+  end
+
   # Event shape:
   # {
   #   initial_state: Event[],
