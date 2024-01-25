@@ -46,23 +46,39 @@ defmodule Thurim.Rooms do
           0
         end
 
+      membership_query =
+        from(ev in Event,
+          where: ev.type == "m.room.member",
+          select: %{
+            state_key: ev.state_key,
+            membership:
+              first_value(fragment("?->>'membership'", ev.content))
+              |> over(
+                partition_by: ev.state_key,
+                order_by: [desc: ev.depth]
+              ),
+            room_id: ev.room_id
+          }
+        )
+
       query =
         from(r in Room,
+          as: :rooms,
           join: e in Event,
           on: e.room_id == r.room_id,
-          left_join: ev in Event,
-          on: ev.room_id == r.room_id and ev.type == "m.room.member",
           join: eve in Event,
           on: eve.room_id == r.room_id,
-          where: fragment("?->>'membership'", ev.content) == "join",
+          join: ev in subquery(membership_query),
+          on: ev.room_id == r.room_id,
+          where: ev.membership == "join",
           where: fragment("?->>'join_rule'", e.content) == "public",
           group_by: r.id,
           select: %{
             room: r,
             event_content: fragment("array_agg(?)", eve.content),
-            member_count: count(ev.id, :distinct)
+            member_count: count(ev.state_key, :distinct)
           },
-          order_by: [desc: count(ev.id, :distinct)]
+          order_by: [desc: count(ev.state_key, :distinct)]
         )
 
       result =
