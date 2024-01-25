@@ -88,6 +88,8 @@ defmodule ThurimWeb.Router do
         get "/rooms/:room_id/messages", RoomController, :messages
         post "/publicRooms", RoomController, :public_rooms
         post "/join/:room_id_or_alias", RoomController, :join
+        post "/rooms/:room_id/join", RoomController, :join
+        post "/rooms/:room_id/leave", RoomController, :leave
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload

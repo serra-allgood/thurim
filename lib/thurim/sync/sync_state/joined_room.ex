@@ -1,17 +1,6 @@
 defmodule Thurim.Sync.SyncState.JoinedRoom do
   alias Thurim.Events
 
-  @derive Jason.Encoder
-  defstruct [
-    :account_data,
-    :ephemereal,
-    :state,
-    :summary,
-    :timeline,
-    :unread_notifications,
-    :unread_thread_notifications
-  ]
-
   def new() do
     %{
       account_data: %{events: []},

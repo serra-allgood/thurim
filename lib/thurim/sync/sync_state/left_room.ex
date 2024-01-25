@@ -1,13 +1,10 @@
 defmodule Thurim.Sync.SyncState.LeftRoom do
   alias Thurim.Events
 
-  @derive Jason.Encoder
-  defstruct [:account_data, :state, :timeline]
-
   def new() do
-    %__MODULE__{
+    %{
       account_data: [],
-      state: [],
+      state: %{events: []},
       timeline: %{
         events: [],
         limited: false,

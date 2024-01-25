@@ -1,9 +1,6 @@
 defmodule Thurim.Sync.SyncState.Presence do
-  @derive Jason.Encoder
-  defstruct [:events]
-
   def new() do
-    %__MODULE__{events: []}
+    %{events: []}
   end
 
   def empty?(presence) do

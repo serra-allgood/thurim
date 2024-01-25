@@ -28,6 +28,19 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     json(conn, response)
   end
 
+  def leave(conn, %{"room_id" => room_id} = _params) do
+    %{sender: sender} = conn.assigns
+
+    attrs = %{"room_id" => room_id, "event_state_key" => sender}
+
+    with {:ok, _} <- Events.create_event(attrs, "m.room.member", "leave") do
+      RoomServer.notify_listeners(room_id)
+      json(conn, %{})
+    else
+      {:error, errors} -> send_changeset_error_to_json(conn, errors)
+    end
+  end
+
   def join(conn, %{"room_id_or_alias" => room_id_or_alias} = _params) do
     %{sender: sender} = conn.assigns
 

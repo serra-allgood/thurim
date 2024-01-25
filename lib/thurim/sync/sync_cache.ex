@@ -59,11 +59,9 @@ defmodule Thurim.Sync.SyncCache do
 
     Events.max_stream_ordering()
     |> SyncState.new()
-    |> Map.from_struct()
     |> update_in([:rooms], fn rooms ->
       # Add invite rooms
       rooms
-      |> Map.from_struct()
       |> update_in([:invite], fn invite ->
         current_rooms
         |> filter_rooms("invite")
