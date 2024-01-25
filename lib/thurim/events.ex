@@ -526,6 +526,26 @@ defmodule Thurim.Events do
     |> create_event()
   end
 
+  def create_event(
+        %{"room_id" => room_id, "event_state_key" => sender} = attrs,
+        "m.room.member",
+        membership
+      ) do
+    {:ok, event_state_key} = find_or_create_state_key(sender)
+
+    attrs
+    |> Map.merge(%{
+      "sender" => sender,
+      "depth" => get_last_depth(room_id) + 1,
+      "state_key" => event_state_key.state_key,
+      "type" => "m.room.member",
+      "content" => %{
+        "membership" => membership
+      }
+    })
+    |> create_event()
+  end
+
   def create_event(%{"room_id" => room_id} = attrs, type, state_key) when is_nil(state_key) do
     new_depth = Map.get("depth", attrs, get_last_depth(room_id) + 1)
 
@@ -607,34 +627,6 @@ defmodule Thurim.Events do
         }),
       "type" => "m.room.create",
       "room_id" => Map.fetch!(params, "room_id")
-    })
-    |> create_event()
-  end
-
-  def create_event(room_id, params, "m.room.member", membership) do
-    {:ok, event_state_key} = Map.fetch!(params, "state_key") |> find_or_create_state_key()
-
-    Map.merge(params, %{
-      "state_key" => event_state_key.state_key,
-      "type" => "m.room.member",
-      "depth" => get_last_depth(room_id) + 1,
-      "content" => %{"membership" => membership},
-      "room_id" => room_id
-    })
-    |> create_event()
-  end
-
-  def create_event(attrs, "m.room.member", membership, depth) do
-    {:ok, event_state_key} = Map.fetch!(attrs, "event_state_key") |> find_or_create_state_key()
-
-    attrs
-    |> Map.merge(%{
-      "depth" => depth,
-      "state_key" => event_state_key.state_key,
-      "type" => "m.room.member",
-      "content" => %{
-        "membership" => membership
-      }
     })
     |> create_event()
   end

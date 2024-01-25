@@ -72,4 +72,8 @@ defmodule Thurim.RoomMembership do
   def previously_in_room?(sender, room_id) do
     Events.user_previously_in_room?(sender, room_id)
   end
+
+  def can_join?(sender, room_id) do
+    Events.latest_membership_type(room_id, sender) != "ban"
+  end
 end

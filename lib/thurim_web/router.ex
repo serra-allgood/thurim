@@ -87,6 +87,7 @@ defmodule ThurimWeb.Router do
         put "/rooms/:room_id/redact/:event_id/:txn_id", RoomController, :create_redaction
         get "/rooms/:room_id/messages", RoomController, :messages
         post "/publicRooms", RoomController, :public_rooms
+        post "/join/:room_id_or_alias", RoomController, :join
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload

@@ -28,6 +28,27 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     json(conn, response)
   end
 
+  def join(conn, %{"room_id_or_alias" => room_id_or_alias} = _params) do
+    %{sender: sender} = conn.assigns
+
+    room_id =
+      if String.starts_with?(room_id_or_alias, "#"),
+        do: Rooms.id_from_alias(room_id_or_alias),
+        else: room_id_or_alias
+
+    attrs = %{"room_id" => room_id, "event_state_key" => sender}
+
+    with {:ok, _} <- Events.create_event(attrs, "m.room.member", "join"),
+         true <- RoomMembership.can_join?(sender, room_id) do
+      RoomSupervisor.start_room(room_id)
+      RoomServer.notify_listeners(room_id)
+      json(conn, %{room_id: room_id})
+    else
+      false -> json_error(conn, :m_forbidden)
+      {:error, errors} -> send_changeset_error_to_json(conn, errors)
+    end
+  end
+
   # Event shape:
   # {
   #   initial_state: Event[],

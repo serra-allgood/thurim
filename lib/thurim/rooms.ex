@@ -187,10 +187,10 @@ defmodule Thurim.Rooms do
       |> Multi.run(:create_member_event, fn _repo, _changes ->
         attrs
         |> Map.put("event_state_key", Map.fetch!(attrs, "sender"))
-        |> Events.create_event("m.room.member", "join", 2)
+        |> Events.create_event("m.room.member", "join")
       end)
       |> Multi.run(:create_power_levels, fn _repo, _changes ->
-        Events.create_event(attrs, "m.room.power_levels", 3)
+        Events.create_event(attrs, "m.room.power_levels")
       end)
 
     room_alias = Map.get(attrs, "room_alias_name", false)
@@ -293,7 +293,6 @@ defmodule Thurim.Rooms do
         Enum.reduce(invite, multi, fn mx_user_id, multi ->
           Multi.run(multi, "create_invite_for_#{mx_user_id}", fn _repo_changes ->
             Events.create_event(
-              attrs["room_id"],
               Map.put(attrs, "state_key", mx_user_id),
               "m.room.membership",
               "invite"
