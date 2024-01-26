@@ -8,7 +8,7 @@ defmodule Thurim.Sync.SyncCache do
   alias Thurim.Sync.SyncState
   # , KnockedRoom}
   alias Thurim.Sync.SyncState.{InvitedRoom, JoinedRoom, LeftRoom}
-  alias Thurim.{Events, Rooms, Rooms.RoomServer}
+  alias Thurim.{Events, Globals, Rooms, Rooms.RoomServer}
 
   def fetch_sync(sender, filter, timeout, params) do
     case Map.fetch(params, "since") do
@@ -57,7 +57,7 @@ defmodule Thurim.Sync.SyncCache do
   def base_sync_helper(sender, filter, _params, since) do
     current_rooms = Rooms.all_user_rooms(sender)
 
-    Events.max_stream_ordering()
+    Globals.next_sync_count()
     |> SyncState.new()
     |> update_in([:rooms], fn rooms ->
       # Add invite rooms

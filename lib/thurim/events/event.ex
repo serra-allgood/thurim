@@ -1,9 +1,7 @@
 defmodule Thurim.Events.Event do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Thurim.Rooms.Room
-  alias Thurim.Events.EventStateKey
-  alias Thurim.Events
+  alias Thurim.{Events, Events.EventStateKey, Globals, Rooms.Room}
 
   @domain Application.compile_env(:thurim, [:matrix, :domain])
 
@@ -19,6 +17,7 @@ defmodule Thurim.Events.Event do
     field :origin, :string, default: @domain
     field :redacts, :string
     field :stream_ordering, :integer
+    field :pdu_count, :integer
     belongs_to :room, Room, references: :room_id, type: :string, foreign_key: :room_id
 
     belongs_to :event_state_key, EventStateKey,
@@ -49,7 +48,10 @@ defmodule Thurim.Events.Event do
       ],
       empty_values: []
     )
-    |> set_defaults(origin_server_ts: generate_origin_server_ts())
+    |> set_defaults(
+      origin_server_ts: generate_origin_server_ts(),
+      pdu_count: Globals.next_sync_count()
+    )
     |> set_auth_events()
     |> set_event_id_hash()
     |> validate_required([

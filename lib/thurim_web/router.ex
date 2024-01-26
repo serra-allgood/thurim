@@ -42,6 +42,8 @@ defmodule ThurimWeb.Router do
         get "/login", UserController, :index
         post "/login", UserController, :login
         get "/register/available", UserController, :available
+        get "/directory/room/:room_alias", DirectoryController, :room_alias
+        get "/publicRooms", RoomController, :index
       end
     end
 
@@ -91,6 +93,11 @@ defmodule ThurimWeb.Router do
         post "/rooms/:room_id/join", RoomController, :join
         post "/rooms/:room_id/leave", RoomController, :leave
 
+        put "/rooms/:room_id/typing/:mx_user_id", TypingController, :update
+
+        post "/rooms/:room_id/receipt/:receipt_type/:event_id", ReceiptController, :create
+        post "/rooms/:room_id/read_markers", ReceiptController, :fully_read
+
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
 
@@ -123,6 +130,15 @@ defmodule ThurimWeb.Router do
         put "/rooms/:room_id/send/:event_type/:txn_id", RoomController, :send_message
         put "/rooms/:room_id/redact/:event_id/:txn_id", RoomController, :create_redaction
         get "/rooms/:room_id/messages", RoomController, :messages
+        post "/publicRooms", RoomController, :public_rooms
+        post "/join/:room_id_or_alias", RoomController, :join
+        post "/rooms/:room_id/join", RoomController, :join
+        post "/rooms/:room_id/leave", RoomController, :leave
+
+        put "/rooms/:room_id/typing/:mx_user_id", TypingController, :update
+
+        post "/rooms/:room_id/receipt/:receipt_type/:event_id", ReceiptController, :create
+        post "/rooms/:room_id/read_markers", ReceiptController, :fully_read
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload

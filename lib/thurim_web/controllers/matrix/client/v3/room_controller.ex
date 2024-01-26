@@ -4,8 +4,8 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
 
   alias Thurim.{
     Events,
-    RoomMembership,
     Rooms,
+    Rooms.RoomMembership,
     Rooms.RoomSupervisor,
     Rooms.RoomServer,
     User,
@@ -79,6 +79,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     case result do
       {:ok, %{room: room} = _changes} ->
         RoomSupervisor.start_room(room.room_id)
+        RoomServer.notify_listeners(room.room_id)
         json(conn, %{room_id: room.room_id})
 
       {:error, _step, changeset} ->
@@ -224,7 +225,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
 
     from =
       if is_nil(from) do
-        Events.max_stream_ordering()
+        Events.max_pdu_count()
       else
         String.to_integer(from)
       end

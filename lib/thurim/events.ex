@@ -41,6 +41,11 @@ defmodule Thurim.Events do
     |> Repo.one()
   end
 
+  def max_pdu_count() do
+    from(e in Event, select: max(e.pdu_count))
+    |> Repo.one()
+  end
+
   def for_room(room_id) do
     from(e in Event, where: e.room_id == ^room_id, order_by: e.origin_server_ts)
     |> Repo.all()
@@ -81,7 +86,7 @@ defmodule Thurim.Events do
 
   def timeline_for_room_id(room_id, since) when is_integer(since) do
     from(e in Event,
-      where: e.stream_ordering > ^since,
+      where: e.pdu_count > ^since,
       where: e.room_id == ^room_id,
       order_by: e.origin_server_ts
     )
@@ -237,40 +242,50 @@ defmodule Thurim.Events do
   def state_events_for_room_id(room_id, since) do
     from(e in Event,
       where: e.room_id == ^room_id and not is_nil(e.state_key),
-      where: e.stream_ordering > ^since,
+      where: e.pdu_count > ^since,
       order_by: e.origin_server_ts
     )
     |> Repo.all()
   end
 
   def heroes_for_room_id(room_id, sender) do
-    from(e in Event,
-      where: e.room_id == ^room_id and e.type == "m.room.member" and e.state_key != ^sender,
-      order_by: e.origin_server_ts,
-      select: e.state_key
+    from(e in subquery(member_events_query(room_id)),
+      where: e.state_key != ^sender and e.membership == ^"join",
+      select: e.state_key,
+      distinct: true
     )
     |> Repo.all()
+  end
+
+  def membership_type_count(room_id, membership_type) do
+    from(e in subquery(member_events_query(room_id)),
+      where: e.membership == ^membership_type,
+      select: count(e.state_key, :distinct)
+    )
+    |> Repo.one()
   end
 
   def invited_member_count(room_id) do
-    member_events(room_id)
-    |> Enum.filter(fn %{events: events} -> List.last(events) == "invite" end)
-    |> Enum.count()
+    membership_type_count(room_id, "invite")
   end
 
   def joined_member_count(room_id) do
-    member_events(room_id)
-    |> Enum.filter(fn %{events: events} -> List.last(events) == "join" end)
-    |> Enum.count()
+    membership_type_count(room_id, "join")
   end
 
-  def member_events(room_id) do
+  def member_events_query(room_id) do
     from(e in Event,
-      select: %{room_id: e.room_id, events: fragment("array_agg(?->>'membership')", e.content)},
-      where: e.room_id == ^room_id and e.type == "m.room.member",
-      group_by: e.room_id
+      where: e.type == "m.room.member" and e.room_id == ^room_id,
+      select: %{
+        state_key: e.state_key,
+        membership:
+          first_value(e.content["membership"])
+          |> over(
+            partition_by: e.state_key,
+            order_by: [desc: e.stream_ordering]
+          )
+      }
     )
-    |> Repo.all()
   end
 
   def events_in_room_id(room_id, direction, filter, limit, from, to)
@@ -508,13 +523,12 @@ defmodule Thurim.Events do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_event(attrs, "m.room.power_levels", depth) do
+  def create_event(%{"room_id" => room_id, "sender" => sender} = attrs, "m.room.power_levels") do
     {:ok, event_state_key} = find_or_create_state_key("")
-    sender = Map.fetch!(attrs, "sender")
 
     attrs
     |> Map.merge(%{
-      "depth" => depth,
+      "depth" => get_last_depth(room_id) + 1,
       "type" => "m.room.power_levels",
       "state_key" => event_state_key.state_key,
       "content" =>

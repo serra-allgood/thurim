@@ -1,4 +1,4 @@
-defmodule Thurim.RoomMembership do
+defmodule Thurim.Rooms.RoomMembership do
   @moduledoc """
   Functions related to a user's membership in rooms
   """

@@ -1,6 +1,8 @@
 defmodule Thurim.Rooms.RoomServer do
   use GenServer
 
+  alias Thurim.Globals
+
   def via_tuple(room_id), do: {:via, Registry, {Registry.Room, room_id}}
 
   def start_link(room_id) when is_binary(room_id) do
@@ -9,7 +11,14 @@ defmodule Thurim.Rooms.RoomServer do
 
   @impl true
   def init(room_id) do
-    {:ok, %{room_id: room_id, listeners: MapSet.new()}}
+    {:ok,
+     %{
+       room_id: room_id,
+       listeners: MapSet.new(),
+       typing: MapSet.new(),
+       typing_timeout_refs: %{},
+       latest_typing_update: 0
+     }}
   end
 
   def register_listener(room_id, pid) do
@@ -22,6 +31,32 @@ defmodule Thurim.Rooms.RoomServer do
 
   def notify_listeners(room_id) do
     GenServer.cast(via_tuple(room_id), :notify_listeners)
+  end
+
+  def start_typing(room_id, mx_user_id, timeout) when is_nil(timeout) do
+    GenServer.cast(via_tuple(room_id), {:start_typing, mx_user_id, nil})
+    notify_listeners(room_id)
+  end
+
+  def start_typing(room_id, mx_user_id, timeout) do
+    {:ok, tref} = :timer.apply_after(timeout, __MODULE__, :stop_typing, [room_id, mx_user_id])
+    GenServer.cast(via_tuple(room_id), {:start_typing, mx_user_id, tref})
+    notify_listeners(room_id)
+  end
+
+  def stop_typing(room_id, mx_user_id) do
+    GenServer.cast(via_tuple(room_id), {:stop_typing, mx_user_id})
+    notify_listeners(room_id)
+  end
+
+  def get_typing(room_id) do
+    GenServer.call(via_tuple(room_id), :get_typing)
+  end
+
+  @impl true
+  def handle_call(:get_typing, _from, state) do
+    {:reply, %{latest_update: state.latest_typing_update, typings: MapSet.to_list(state.typing)},
+     state}
   end
 
   @impl true
@@ -38,5 +73,33 @@ defmodule Thurim.Rooms.RoomServer do
   def handle_cast(:notify_listeners, state) do
     Enum.each(state.listeners, fn pid -> send(pid, {:room_update, state.room_id}) end)
     {:noreply, %{state | listeners: MapSet.new()}}
+  end
+
+  @impl true
+  def handle_cast({:start_typing, mx_user_id, tref}, %{typing_timeout_refs: refs} = state) do
+    tref_for_user = Map.get(refs, mx_user_id)
+    if !is_nil(tref_for_user), do: :timer.cancel(tref_for_user)
+
+    latest_typing_update = Globals.next_sync_count()
+
+    {:noreply,
+     %{
+       state
+       | typing: MapSet.put(state.typing, mx_user_id),
+         typing_timeout_refs: Map.put(state.typing_timeout_refs, mx_user_id, tref),
+         latest_typing_update: latest_typing_update
+     }}
+  end
+
+  @impl true
+  def handle_cast({:stop_typing, mx_user_id}, state) do
+    latest_typing_update = Globals.next_sync_count()
+
+    {:noreply,
+     %{
+       state
+       | typing: MapSet.delete(state.typing, mx_user_id),
+         latest_typing_update: latest_typing_update
+     }}
   end
 end

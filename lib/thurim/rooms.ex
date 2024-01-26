@@ -38,7 +38,7 @@ defmodule Thurim.Rooms do
   end
 
   def public_rooms(server, limit, since) do
-    if is_nil(server) do
+    if is_nil(server) || server == @domain do
       offset =
         if !is_nil(limit) && !is_nil(since) do
           String.to_integer(limit) * String.to_integer(since)
@@ -52,10 +52,10 @@ defmodule Thurim.Rooms do
           select: %{
             state_key: ev.state_key,
             membership:
-              first_value(fragment("?->>'membership'", ev.content))
+              first_value(ev.content["membership"])
               |> over(
                 partition_by: ev.state_key,
-                order_by: [desc: ev.depth]
+                order_by: [desc: ev.stream_ordering]
               ),
             room_id: ev.room_id
           }
@@ -71,7 +71,7 @@ defmodule Thurim.Rooms do
           join: ev in subquery(membership_query),
           on: ev.room_id == r.room_id,
           where: ev.membership == "join",
-          where: fragment("?->>'join_rule'", e.content) == "public",
+          where: e.content["join_rule"] == "public",
           group_by: r.id,
           select: %{
             room: r,
