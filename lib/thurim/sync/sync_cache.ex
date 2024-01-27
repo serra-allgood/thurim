@@ -57,7 +57,7 @@ defmodule Thurim.Sync.SyncCache do
   def base_sync_helper(sender, filter, _params, since) do
     current_rooms = Rooms.all_user_rooms(sender)
 
-    Globals.next_sync_count()
+    Globals.current_sync_count()
     |> SyncState.new()
     |> update_in([:rooms], fn rooms ->
       # Add invite rooms

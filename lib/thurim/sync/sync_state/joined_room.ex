@@ -5,7 +5,7 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
   def new() do
     %{
       account_data: %{events: []},
-      ephemereal: %{events: []},
+      ephemeral: %{events: []},
       state: %{events: []},
       # summary includes the keys m.heroes, m.invited_member_count, and m.joined_member_count,
       # but may omit any of them if they have not changed since the last sync
@@ -56,13 +56,13 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
       typing_event = %{content: %{user_ids: typing_users}, type: "m.typing"}
 
       joined_room
-      |> put_in([:ephemereal, :events], [typing_event])
+      |> put_in([:ephemeral, :events], [typing_event])
     else
       joined_room
     end
   end
 
   def empty?({_room_id, response}) do
-    Enum.empty?(response.timeline.events) && Enum.empty?(response.ephemereal.events)
+    Enum.empty?(response.timeline.events) && Enum.empty?(response.ephemeral.events)
   end
 end

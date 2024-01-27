@@ -2,9 +2,14 @@ defmodule Thurim.Globals do
   import Ecto.Query, warn: false
   alias Thurim.{Repo, Globals.GlobalCount}
 
+  def current_sync_count() do
+    from(g in GlobalCount, where: g.name == "sync", select: g.count)
+    |> Repo.one()
+  end
+
   def next_sync_count() do
     current_sync =
-      from(c in GlobalCount, where: c.name == "sync")
+      from(g in GlobalCount, where: g.name == "sync")
       |> Repo.one()
 
     new_sync =

@@ -52,7 +52,7 @@ defmodule Thurim.Rooms do
           select: %{
             state_key: ev.state_key,
             membership:
-              first_value(ev.content["membership"])
+              first_value(fragment("?->>'membership'", ev.content))
               |> over(
                 partition_by: ev.state_key,
                 order_by: [desc: ev.stream_ordering]
@@ -71,7 +71,8 @@ defmodule Thurim.Rooms do
           join: ev in subquery(membership_query),
           on: ev.room_id == r.room_id,
           where: ev.membership == "join",
-          where: e.content["join_rule"] == "public",
+          where:
+            e.type == "m.room.join_rules" and fragment("?->>'join_rule'", e.content) == "public",
           group_by: r.id,
           select: %{
             room: r,

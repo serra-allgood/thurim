@@ -213,9 +213,9 @@ defmodule Thurim.Events do
       where: e.room_id == ^room_id,
       where: e.type == ^event_type,
       where: e.state_key == ^state_key,
-      order_by: [desc: e.origin_server_ts]
+      order_by: [desc: e.stream_ordering],
+      limit: 1
     )
-    |> first()
     |> Repo.one()
   end
 
@@ -225,9 +225,9 @@ defmodule Thurim.Events do
       where: e.type == ^event_type,
       where: e.state_key == ^state_key,
       where: e.origin_server_ts < ^at_time,
-      order_by: [desc: e.origin_server_ts]
+      order_by: [desc: e.stream_ordering],
+      limit: 1
     )
-    |> first()
     |> Repo.one()
   end
 
@@ -561,14 +561,14 @@ defmodule Thurim.Events do
   end
 
   def create_event(%{"room_id" => room_id} = attrs, type, state_key) when is_nil(state_key) do
-    new_depth = Map.get("depth", attrs, get_last_depth(room_id) + 1)
+    new_depth = Map.get(attrs, "depth", get_last_depth(room_id) + 1)
 
     Map.merge(%{"depth" => new_depth, "type" => type}, attrs)
     |> create_event()
   end
 
   def create_event(%{"room_id" => room_id} = attrs, type, state_key) do
-    new_depth = Map.get("depth", attrs, get_last_depth(room_id) + 1)
+    new_depth = Map.get(attrs, "depth", get_last_depth(room_id) + 1)
     {:ok, _} = find_or_create_state_key(state_key)
 
     Map.merge(%{"depth" => new_depth, "type" => type, "state_key" => state_key}, attrs)

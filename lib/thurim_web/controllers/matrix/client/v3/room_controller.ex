@@ -191,8 +191,10 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       ) do
     %{sender: sender} = conn.assigns
 
-    if User.permission_to_create_event?(sender, room_id, event_type, true) do
-      case Events.create_event(
+    with {:has_permission, true} <-
+           {:has_permission, User.permission_to_create_event?(sender, room_id, event_type, true)},
+         {:ok, event} <-
+           Events.create_event(
              %{
                "sender" => sender,
                "content" => conn.body_params,
@@ -203,17 +205,16 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
              event_type,
              state_key
            ) do
-        {:ok, event} ->
-          RoomServer.notify_listeners(room_id)
-          json(conn, %{"event_id" => event.event_id})
-
-        {:error, _name, changeset, _changes} ->
-          send_changeset_error_to_json(conn, changeset)
-      end
+      RoomServer.notify_listeners(room_id)
+      json(conn, %{"event_id" => event.event_id})
     else
-      json_error(conn, :m_forbidden)
+      {:has_permission, false} -> json_error(conn, :m_forbidden)
+      {:error, errors} -> send_changeset_error_to_json(conn, errors)
     end
   end
+
+  def create_state_event(conn, params),
+    do: create_state_event(conn, Map.put(params, "state_key", ""))
 
   def messages(conn, %{"room_id" => room_id, "dir" => dir} = params) do
     %{current_account: account, sender: sender} = conn.assigns
