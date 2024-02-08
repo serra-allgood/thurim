@@ -143,6 +143,7 @@ defmodule ThurimWeb.Router do
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
+        get "/keys/changes", KeysController, :changes
       end
     end
 

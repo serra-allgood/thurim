@@ -250,7 +250,7 @@ defmodule Thurim.Events do
 
   def heroes_for_room_id(room_id, sender) do
     from(e in subquery(member_events_query(room_id)),
-      where: e.state_key != ^sender and e.membership == ^"join",
+      where: e.state_key != ^sender and e.membership == "join",
       select: e.state_key,
       distinct: true
     )

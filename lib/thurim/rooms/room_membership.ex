@@ -7,6 +7,7 @@ defmodule Thurim.Rooms.RoomMembership do
   alias Thurim.Repo
   alias Thurim.Events
   alias Thurim.Events.Event
+  alias Thurim.Devices.DeviceListVersion
 
   def user_ids_in_room(room) do
     from(
@@ -63,6 +64,69 @@ defmodule Thurim.Rooms.RoomMembership do
         %{"displayname" => displayname, "avatar_url" => avatar_url}
       end
     )
+  end
+
+  def get_device_changes(sender, from, to) do
+    member_events =
+      from(e in Event,
+        where: e.type == "m.room.member",
+        select: %{
+          state_key: e.state_key,
+          room_id: e.room_id,
+          membership:
+            first_value(fragment("?->>'membership'", e.content))
+            |> over(
+              partition_by: e.state_key,
+              order_by: [desc: e.stream_ordering]
+            )
+        }
+      )
+
+    encrypted_sender_rooms =
+      from(e in subquery(member_events),
+        as: :events,
+        where: e.state_key == ^sender and e.membership == "join",
+        where:
+          exists(
+            from(ev in Event,
+              where: parent_as(:events).room_id == ev.room_id and ev.type == "m.room.encryption"
+            )
+          ),
+        select: e.room_id
+      )
+
+    user_ids_in_shared_encrypted_rooms =
+      from(e in Event,
+        join: me in subquery(member_events),
+        on: me.room_id == e.room_id,
+        where: e.room_id in subquery(encrypted_sender_rooms),
+        where: e.stream_ordering > ^from and e.stream_ordering <= ^to,
+        where: me.state_key != ^sender and me.membership == "join",
+        select: %{user_id: me.state_key}
+      )
+
+    user_ids_previously_in_shared_encrypted_rooms =
+      from(e in Event,
+        join: me in subquery(member_events),
+        on: me.room_id == e.room_id,
+        where: e.room_id in subquery(encrypted_sender_rooms),
+        where: e.stream_ordering > ^from and e.stream_ordering <= ^to,
+        where: me.state_key != ^sender and me.membership in ~w(leave kick ban),
+        select: %{user_id: me.state_key}
+      )
+
+    from(dv in DeviceListVersion,
+      left_join: c in subquery(user_ids_in_shared_encrypted_rooms),
+      on: c.user_id == dv.user_id,
+      left_join: l in subquery(user_ids_previously_in_shared_encrypted_rooms),
+      on: l.user_id == dv.user_id,
+      where: dv.version > ^from and dv.version <= ^to,
+      select: %{
+        changed: fragment("array_remove(array_agg(distinct ?), null)", c.user_id),
+        left: fragment("array_remove(array_agg(distinct ?), null)", l.user_id)
+      }
+    )
+    |> Repo.one()
   end
 
   def in_room?(sender, room_id) do

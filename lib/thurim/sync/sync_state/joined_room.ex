@@ -52,7 +52,7 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
       |> put_in([:timeline, :prev_batch], since)
       |> put_in([:timeline, :limited], false)
 
-    if latest_typing_update > String.to_integer(since) do
+    if latest_typing_update > since do
       typing_event = %{content: %{user_ids: typing_users}, type: "m.typing"}
 
       joined_room

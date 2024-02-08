@@ -1,8 +1,9 @@
 defmodule Thurim.Devices do
   import Ecto.Query, warn: false
+  alias Thurim.User
   alias Thurim.Repo
-  alias Thurim.Devices.Device
-  alias Thurim.AccessTokens
+  alias Thurim.Devices.{Device, DeviceListVersion}
+  alias Thurim.{AccessTokens, Globals}
 
   @device_id_length 6
 
@@ -16,6 +17,23 @@ defmodule Thurim.Devices do
       device_id
     else
       generate_device_id(localpart)
+    end
+  end
+
+  def increment_device_list_version(mx_user_id) do
+    case from(dv in DeviceListVersion, where: dv.user_id == ^mx_user_id) |> Repo.one() do
+      nil ->
+        %DeviceListVersion{}
+        |> DeviceListVersion.changeset(%{
+          user_id: mx_user_id,
+          version: Globals.next_sync_count()
+        })
+        |> Repo.insert()
+
+      dv ->
+        dv
+        |> DeviceListVersion.changeset(%{user_id: mx_user_id, version: Globals.next_sync_count()})
+        |> Repo.update()
     end
   end
 
@@ -33,7 +51,9 @@ defmodule Thurim.Devices do
            AccessTokens.create_access_token(%{
              device_session_id: device.session_id,
              localpart: attrs.localpart
-           }) do
+           }),
+         {:ok, _} <-
+           increment_device_list_version(User.mx_user_id(attrs.localpart)) do
       device |> Repo.preload(:access_token)
     end
   end

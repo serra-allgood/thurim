@@ -9,7 +9,7 @@ import Config
 
 config :thurim, :matrix,
   auth_flows: [
-    %{stages: ["m.login.dummy"]},
+    # %{stages: ["m.login.dummy"]},
     %{stages: ["m.login.password"]}
   ],
   auth_flow_types: [%{"type" => "m.login.password"}],

@@ -104,6 +104,9 @@ defmodule Thurim.User do
       Multi.new()
       |> Multi.insert(:account, Account.changeset(%Account{}, params))
       |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
+      |> Multi.run(:device_list_update, fn _repo, %{account: account} ->
+        mx_user_id(account.localpart) |> Devices.increment_device_list_version()
+      end)
       |> Multi.run(:profile, fn _repo, %{account: account} ->
         create_profile(%{"localpart" => account.localpart})
       end)
