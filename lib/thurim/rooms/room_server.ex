@@ -1,7 +1,7 @@
 defmodule Thurim.Rooms.RoomServer do
   use GenServer
 
-  alias Thurim.Globals
+  alias Thurim.Presence.PresenceServer
 
   def via_tuple(room_id), do: {:via, Registry, {Registry.Room, room_id}}
 
@@ -80,7 +80,8 @@ defmodule Thurim.Rooms.RoomServer do
     tref_for_user = Map.get(refs, mx_user_id)
     if !is_nil(tref_for_user), do: :timer.cancel(tref_for_user)
 
-    latest_typing_update = Globals.next_sync_count()
+    PresenceServer.set_edu_count(1)
+    latest_typing_update = PresenceServer.get_edu_count()
 
     {:noreply,
      %{
@@ -93,7 +94,8 @@ defmodule Thurim.Rooms.RoomServer do
 
   @impl true
   def handle_cast({:stop_typing, mx_user_id}, state) do
-    latest_typing_update = Globals.next_sync_count()
+    PresenceServer.set_edu_count(1)
+    latest_typing_update = PresenceServer.get_edu_count()
 
     {:noreply,
      %{

@@ -19,6 +19,8 @@ defmodule Thurim.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Thurim.PubSub},
       ThurimWeb.Presence,
+      # Start other GenServers
+      Thurim.Presence.PresenceServer,
       # Start the Endpoint (http/https)
       ThurimWeb.Endpoint
       # Start a worker by calling: Thurim.Worker.start_link(arg)

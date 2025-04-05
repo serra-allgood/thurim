@@ -2,7 +2,7 @@ defmodule ThurimWeb.Matrix.Client.V3.PresenceController do
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
 
-  alias Thurim.PresenceServer
+  alias Thurim.Presence.PresenceServer
 
   def show(conn, %{"user_id" => user_id}) do
     case PresenceServer.get_user_presence(user_id) do

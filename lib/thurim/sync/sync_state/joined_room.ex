@@ -13,7 +13,7 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
       timeline: %{
         events: [],
         limited: false,
-        prev_batch: ''
+        prev_batch: ""
       },
       unread_notifications: %{
         highlight_count: 0,
@@ -26,12 +26,12 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
     }
   end
 
-  def new(room_id, mx_user_id, _filter, since) do
-    timeline = Events.timeline_for_room_id(room_id, since)
+  def new(room_id, mx_user_id, _filter, pdu_count, edu_count) do
+    timeline = Events.timeline_for_room_id(room_id, pdu_count)
     timeline_ids = Enum.map(timeline, & &1.id)
     %{latest_update: latest_typing_update, typings: typing_users} = RoomServer.get_typing(room_id)
 
-    # TODO: Does state for `limited: false` need to be altered by `since`?
+    # TODO: Does state for `limited: false` need to be altered by `pdu_count`?
     state =
       Events.state_events_for_room_id(room_id, nil)
       |> Enum.filter(&(!Enum.member?(timeline_ids, &1.id)))
@@ -49,10 +49,10 @@ defmodule Thurim.Sync.SyncState.JoinedRoom do
       end)
       |> put_in([:state, :events], state |> Enum.map(&Events.map_client_event(&1, true)))
       |> put_in([:timeline, :events], timeline |> Enum.map(&Events.map_client_event(&1, true)))
-      |> put_in([:timeline, :prev_batch], since)
+      |> put_in([:timeline, :prev_batch], pdu_count)
       |> put_in([:timeline, :limited], false)
 
-    if latest_typing_update > since do
+    if latest_typing_update > edu_count do
       typing_event = %{content: %{user_ids: typing_users}, type: "m.typing"}
 
       joined_room

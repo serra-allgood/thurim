@@ -5,15 +5,18 @@ defmodule Thurim.User do
 
   import Ecto.Query, warn: false
   alias Ecto.Multi
-  alias Thurim.Repo
 
-  alias Thurim.User.Account
-  alias Thurim.Devices
-  alias Thurim.AccessTokens
-  alias Thurim.User.Profile
-  alias Thurim.User.AccountData
-  alias Thurim.PushRules
-  alias Thurim.Events
+  alias Thurim.{
+    AccessTokens,
+    Devices,
+    Devices.Device,
+    Events,
+    PushRules,
+    Repo,
+    User.Account,
+    User.AccountData,
+    User.Profile
+  }
 
   @domain Application.compile_env(:thurim, [:matrix, :domain])
 
@@ -103,9 +106,11 @@ defmodule Thurim.User do
     multi =
       Multi.new()
       |> Multi.insert(:account, Account.changeset(%Account{}, params))
-      |> Multi.run(:device, fn _repo, _changes -> Devices.create_device(params) end)
-      |> Multi.run(:device_list_update, fn _repo, %{account: account} ->
-        mx_user_id(account.localpart) |> Devices.increment_device_list_version()
+      |> Multi.run(:device, fn _repo, %{account: account} ->
+        Devices.create_device(
+          %Device{mx_user_id: "@#{account.localpart}:#{params["server_name"]}"},
+          params
+        )
       end)
       |> Multi.run(:profile, fn _repo, %{account: account} ->
         create_profile(%{"localpart" => account.localpart})
@@ -128,6 +133,11 @@ defmodule Thurim.User do
     [head | _tail] = String.split(user_id, ":", parts: 2)
     "@" <> localpart = head
     localpart
+  end
+
+  def extract_server_name(user_id) do
+    String.split(user_id, ":", parts: 2)
+    |> List.last()
   end
 
   @doc """

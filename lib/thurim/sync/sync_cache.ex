@@ -5,10 +5,15 @@ defmodule Thurim.Sync.SyncCache do
     otp_app: :thurim,
     adapter: Nebulex.Adapters.Local
 
-  alias Thurim.Sync.SyncState
-  # , KnockedRoom}
-  alias Thurim.Sync.SyncState.{InvitedRoom, JoinedRoom, LeftRoom}
-  alias Thurim.{Events, Globals, Rooms, Rooms.RoomServer}
+  alias Thurim.Sync.{
+    SyncState,
+    SyncState.InvitedRoom,
+    SyncState.JoinedRoom,
+    SyncState.LeftRoom,
+    SyncToken
+  }
+
+  alias Thurim.{Events, Presence.PresenceServer, Rooms, Rooms.RoomServer}
 
   def fetch_sync(sender, filter, timeout, params) do
     case Map.fetch(params, "since") do
@@ -57,7 +62,17 @@ defmodule Thurim.Sync.SyncCache do
   def base_sync_helper(sender, filter, _params, since) do
     current_rooms = Rooms.all_user_rooms(sender)
 
-    Globals.current_sync_count()
+    tokens =
+      if is_nil(since) do
+        ["0_0_0"]
+      else
+        String.split(since, "_")
+      end
+      |> Enum.map(&String.to_integer/1)
+
+    [pdu_since, _device_list_since, edu_since] = tokens
+
+    SyncToken.current_sync_token(tokens)
     |> SyncState.new()
     |> update_in([:rooms], fn rooms ->
       # Add invite rooms
@@ -66,7 +81,7 @@ defmodule Thurim.Sync.SyncCache do
         current_rooms
         |> filter_rooms("invite")
         |> Enum.reduce(invite, fn {room, _membership_events}, invite ->
-          invite_state_events = Events.invite_state_events(room.room_id, sender, since)
+          invite_state_events = Events.invite_state_events(room.room_id, sender, pdu_since)
           put_in(invite, [room.room_id], InvitedRoom.new(invite_state_events))
         end)
         |> Map.reject(&InvitedRoom.empty?/1)
@@ -76,7 +91,11 @@ defmodule Thurim.Sync.SyncCache do
         current_rooms
         |> filter_rooms("join")
         |> Enum.reduce(join, fn {room, _membership_events}, join ->
-          put_in(join, [room.room_id], JoinedRoom.new(room.room_id, sender, filter, since))
+          put_in(
+            join,
+            [room.room_id],
+            JoinedRoom.new(room.room_id, sender, filter, pdu_since, edu_since)
+          )
         end)
         |> Map.reject(&JoinedRoom.empty?/1)
       end)
@@ -85,7 +104,7 @@ defmodule Thurim.Sync.SyncCache do
         current_rooms
         |> filter_rooms("leave")
         |> Enum.reduce(left, fn {room, _membership_events}, left ->
-          put_in(left, [room.room_id], LeftRoom.new(room.room_id, filter, since))
+          put_in(left, [room.room_id], LeftRoom.new(room.room_id, filter, pdu_since))
         end)
         |> Map.reject(&LeftRoom.empty?/1)
       end)
@@ -120,6 +139,9 @@ defmodule Thurim.Sync.SyncCache do
             if current_rooms |> Enum.map(& &1.room_id) |> Enum.member?(room_id) do
               sync_helper(sender, filter, params, since)
             end
+
+          :edu_update ->
+            sync_helper(sender, filter, params, since)
         end
 
       true ->
@@ -139,9 +161,11 @@ defmodule Thurim.Sync.SyncCache do
 
   defp listen_for_updates(rooms) do
     Enum.each(rooms, &RoomServer.register_listener(&1.room_id, self()))
+    PresenceServer.register_listener(self())
   end
 
   defp silence_updates(rooms) do
     Enum.each(rooms, &RoomServer.unregister_listener(&1.room_id, self()))
+    PresenceServer.unregister_listener(self())
   end
 end
