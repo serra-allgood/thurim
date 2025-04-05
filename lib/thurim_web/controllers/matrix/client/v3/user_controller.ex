@@ -10,6 +10,7 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
   @flows @matrix_config[:auth_flow_types]
   @homeserver_url @matrix_config[:homeserver_url]
   @identity_server_url @matrix_config[:identity_server_url]
+  @domain @matrix_config[:domain]
 
   def index(conn, _params) do
     render(conn, "index.json", flows: @flows)
@@ -127,7 +128,8 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
           "display_name" => display_name,
           "localpart" => localpart,
           "inhibit_login" => inhibit_login,
-          "device_id" => device_id
+          "device_id" => device_id,
+          "server_name" => @domain
         },
         params
       )

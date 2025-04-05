@@ -1,4 +1,4 @@
-defmodule Thurim.PresenceState do
+defmodule Thurim.Presence.PresenceState do
   @enforce_keys [:presence, :status_msg, :last_active]
   defstruct [:presence, :status_msg, :last_active]
 

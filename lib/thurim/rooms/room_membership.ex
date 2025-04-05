@@ -4,10 +4,7 @@ defmodule Thurim.Rooms.RoomMembership do
   """
 
   import Ecto.Query, warn: false
-  alias Thurim.Repo
-  alias Thurim.Events
-  alias Thurim.Events.Event
-  alias Thurim.Devices.DeviceListVersion
+  alias Thurim.{Devices.Device, Events, Events.Event, Repo}
 
   def user_ids_in_room(room) do
     from(
@@ -77,7 +74,7 @@ defmodule Thurim.Rooms.RoomMembership do
             first_value(fragment("?->>'membership'", e.content))
             |> over(
               partition_by: e.state_key,
-              order_by: [desc: e.stream_ordering]
+              order_by: [desc: e.pdu_count]
             )
         }
       )
@@ -100,7 +97,7 @@ defmodule Thurim.Rooms.RoomMembership do
         join: me in subquery(member_events),
         on: me.room_id == e.room_id,
         where: e.room_id in subquery(encrypted_sender_rooms),
-        where: e.stream_ordering > ^from and e.stream_ordering <= ^to,
+        where: e.pdu_count > ^from and e.pdu_count <= ^to,
         where: me.state_key != ^sender and me.membership == "join",
         select: %{user_id: me.state_key}
       )
@@ -110,16 +107,16 @@ defmodule Thurim.Rooms.RoomMembership do
         join: me in subquery(member_events),
         on: me.room_id == e.room_id,
         where: e.room_id in subquery(encrypted_sender_rooms),
-        where: e.stream_ordering > ^from and e.stream_ordering <= ^to,
+        where: e.pdu_count > ^from and e.pdu_count <= ^to,
         where: me.state_key != ^sender and me.membership in ~w(leave kick ban),
         select: %{user_id: me.state_key}
       )
 
-    from(dv in DeviceListVersion,
+    from(dv in Device,
       left_join: c in subquery(user_ids_in_shared_encrypted_rooms),
-      on: c.user_id == dv.user_id,
+      on: c.user_id == dv.mx_user_id,
       left_join: l in subquery(user_ids_previously_in_shared_encrypted_rooms),
-      on: l.user_id == dv.user_id,
+      on: l.user_id == dv.mx_user_id,
       where: dv.version > ^from and dv.version <= ^to,
       select: %{
         changed: fragment("array_remove(array_agg(distinct ?), null)", c.user_id),

@@ -5,6 +5,7 @@ defmodule Thurim.User.Account do
   import Ecto.Changeset
 
   @localpart_regex ~r|^[a-z0-9\-\.\=\_\/]+$|
+  @domain Application.compile_env(:thurim, [:matrix, :domain])
 
   @primary_key {:localpart, :string, autogenerate: false}
   @foreign_key_type :string
@@ -15,7 +16,7 @@ defmodule Thurim.User.Account do
 
     timestamps()
 
-    has_many :devices, Device, foreign_key: :localpart
+    has_many :devices, Device, foreign_key: :localpart, where: [server_name: @domain]
     has_many :access_tokens, AccessToken, foreign_key: :localpart
   end
 

@@ -8,7 +8,7 @@ defmodule Thurim.Sync.SyncState.LeftRoom do
       timeline: %{
         events: [],
         limited: false,
-        prev_batch: ''
+        prev_batch: ""
       }
     }
   end

@@ -55,7 +55,7 @@ defmodule Thurim.Rooms do
               first_value(fragment("?->>'membership'", ev.content))
               |> over(
                 partition_by: ev.state_key,
-                order_by: [desc: ev.stream_ordering]
+                order_by: [desc: ev.pdu_count]
               ),
             room_id: ev.room_id
           }
