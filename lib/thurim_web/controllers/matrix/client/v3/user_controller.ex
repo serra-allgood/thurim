@@ -16,6 +16,11 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
     render(conn, "index.json", flows: @flows)
   end
 
+  # TODO: Fully implement the endpoint
+  def show(conn, _params) do
+    json(conn, %{})
+  end
+
   def whoami(conn, _params) do
     account = Map.get(conn.assigns, :current_account)
 
@@ -41,7 +46,8 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
             Devices.create_device_and_access_token(%{
               device_id: device_id,
               display_name: device_display_name,
-              localpart: account.localpart
+              localpart: account.localpart,
+              mx_user_id: "@#{localpart}:#{@domain}"
             })
 
           device ->

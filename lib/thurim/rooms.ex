@@ -308,10 +308,10 @@ defmodule Thurim.Rooms do
     multi =
       if invite do
         Enum.reduce(invite, multi, fn mx_user_id, multi ->
-          Multi.run(multi, "create_invite_for_#{mx_user_id}", fn _repo_changes ->
+          Multi.run(multi, "create_invite_for_#{mx_user_id}", fn _repo, _changes ->
             Events.create_event(
-              Map.put(attrs, "state_key", mx_user_id),
-              "m.room.membership",
+              Map.put(attrs, "event_state_key", mx_user_id),
+              "m.room.member",
               "invite"
             )
           end)

@@ -594,11 +594,11 @@ defmodule Thurim.Events do
   end
 
   def create_event(
-        %{"room_id" => room_id, "event_state_key" => sender} = attrs,
+        %{"room_id" => room_id, "event_state_key" => state_key, "sender" => sender} = attrs,
         "m.room.member",
         membership
       ) do
-    {:ok, event_state_key} = find_or_create_state_key(sender)
+    {:ok, event_state_key} = find_or_create_state_key(state_key)
 
     attrs
     |> Map.merge(%{

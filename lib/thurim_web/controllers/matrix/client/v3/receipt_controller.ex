@@ -5,10 +5,10 @@ defmodule ThurimWeb.Matrix.Client.V3.ReceiptController do
   # TODO: Implement read receipts
   def create(
         conn,
-        %{"room_id" => room_id, "receipt_type" => receipt_type, "event_id" => event_id} = params
+        %{"room_id" => _room_id, "receipt_type" => receipt_type, "event_id" => _event_id} = params
       ) do
-    %{sender: sender} = conn.assigns
-    thread_id = Map.get(params, "thread_id", "main")
+    %{sender: _sender} = conn.assigns
+    _thread_id = Map.get(params, "thread_id", "main")
 
     if receipt_type == "m.fully_read" do
       fully_read(conn, params)
@@ -18,7 +18,7 @@ defmodule ThurimWeb.Matrix.Client.V3.ReceiptController do
   end
 
   # TODO: Implement fully read marker
-  def fully_read(conn, params) do
+  def fully_read(conn, _params) do
     json(conn, %{})
   end
 end

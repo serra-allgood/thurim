@@ -64,7 +64,7 @@ defmodule Thurim.Sync.SyncCache do
 
     tokens =
       if is_nil(since) do
-        ["0_0_0"]
+        ["0", "0", "0"]
       else
         String.split(since, "_")
       end

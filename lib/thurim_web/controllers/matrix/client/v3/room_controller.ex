@@ -1,4 +1,5 @@
 defmodule ThurimWeb.Matrix.Client.V3.RoomController do
+  require Logger
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
 
@@ -49,16 +50,23 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
         do: Rooms.id_from_alias(room_id_or_alias),
         else: room_id_or_alias
 
-    attrs = %{"room_id" => room_id, "event_state_key" => sender}
+    attrs = %{"room_id" => room_id, "event_state_key" => sender, "sender" => sender}
 
-    with {:ok, _} <- Events.create_event(attrs, "m.room.member", "join"),
-         true <- RoomMembership.can_join?(sender, room_id) do
-      RoomSupervisor.start_room(room_id)
+    with true <- RoomMembership.can_join?(sender, room_id),
+         {:ok, _} <- Events.create_event(attrs, "m.room.member", "join") do
+      if !RoomServer.exists?(room_id) do
+        RoomSupervisor.start_room(room_id)
+      end
+
       RoomServer.notify_listeners(room_id)
       json(conn, %{room_id: room_id})
     else
-      false -> json_error(conn, :m_forbidden)
-      {:error, errors} -> send_changeset_error_to_json(conn, errors)
+      false ->
+        json_error(conn, :m_forbidden)
+
+      {:error, errors} ->
+        Logger.error("Failed to join room due to errors: #{inspect(errors, pretty: true)}")
+        send_changeset_error_to_json(conn, errors)
     end
   end
 

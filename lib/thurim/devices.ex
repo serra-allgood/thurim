@@ -31,7 +31,7 @@ defmodule Thurim.Devices do
   end
 
   def create_device_and_access_token(attrs) do
-    with {:ok, device} <- create_device(attrs),
+    with {:ok, device} <- create_device(%Device{}, attrs),
          {:ok, _} <-
            AccessTokens.create_access_token(%{
              device_session_id: device.session_id,
@@ -83,7 +83,7 @@ defmodule Thurim.Devices do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_device(device \\ %Device{}, attrs \\ %{}) do
+  def create_device(device, attrs \\ %{}) do
     device
     |> Device.changeset(attrs)
     |> Repo.insert()

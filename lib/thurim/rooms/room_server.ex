@@ -9,6 +9,10 @@ defmodule Thurim.Rooms.RoomServer do
     GenServer.start_link(__MODULE__, room_id, name: via_tuple(room_id))
   end
 
+  def exists?(room_id) do
+    !(Registry.lookup(Registry.Room, room_id) |> Enum.empty?())
+  end
+
   @impl true
   def init(room_id) do
     {:ok,

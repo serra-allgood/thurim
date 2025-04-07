@@ -36,6 +36,7 @@ defmodule ThurimWeb.Router do
         post "/login", UserController, :login
         get "/register/available", UserController, :available
         get "/publicRooms", RoomController, :index
+        get "/profile/:mx_user_id", UserController, :show
       end
 
       scope "/r0", V3 do
@@ -44,6 +45,7 @@ defmodule ThurimWeb.Router do
         get "/register/available", UserController, :available
         get "/directory/room/:room_alias", DirectoryController, :room_alias
         get "/publicRooms", RoomController, :index
+        get "/profile/:mx_user_id", UserController, :show
       end
     end
 
