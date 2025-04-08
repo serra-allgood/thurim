@@ -9,9 +9,8 @@ defmodule Thurim.Repo.Migrations.CreateDeviceKeys do
           references(:devices, on_delete: :delete_all, type: :text, column: :device_id),
           null: false
 
-      add :algorithm, :text, null: false
-      add :type, :text, null: false
-      add :key, :text, null: false
+      add :algorithms, {:array, :text}, null: false
+      add :keys, :jsonb, null: false
       add :signatures, :jsonb
 
       timestamps()

@@ -9,6 +9,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     Rooms.RoomMembership,
     Rooms.RoomSupervisor,
     Rooms.RoomServer,
+    Sync.SyncToken,
     User,
     Transactions
   }
@@ -137,6 +138,14 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   def members(conn, %{"room_id" => room_id} = params) do
     %{sender: sender} = conn.assigns
     at_time = Map.get(params, "at", :infinity)
+
+    at_time =
+      if is_binary(at_time) do
+        SyncToken.extract_pdu_token(at_time)
+      else
+        at_time
+      end
+
     membership = Map.get(params, "membership")
     not_membership = Map.get(params, "not_membership")
 

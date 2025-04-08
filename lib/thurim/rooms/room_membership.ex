@@ -23,9 +23,8 @@ defmodule Thurim.Rooms.RoomMembership do
 
     base =
       from(e in Event,
-        where:
-          e.room_id == ^room_id and e.type == "m.room.member" and e.origin_server_ts < ^at_time,
-        order_by: e.origin_server_ts
+        where: e.room_id == ^room_id and e.type == "m.room.member" and e.pdu_count < ^at_time,
+        order_by: e.pdu_count
       )
 
     cond do

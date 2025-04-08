@@ -21,4 +21,10 @@ defmodule Thurim.Sync.SyncToken do
 
     "#{max_pdu_count()}_#{max_device_version()}_#{current_edu_count()}"
   end
+
+  def extract_pdu_token(token) do
+    String.split(token, "_")
+    |> Enum.map(&String.to_integer/1)
+    |> List.first()
+  end
 end

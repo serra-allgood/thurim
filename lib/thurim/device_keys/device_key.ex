@@ -7,8 +7,8 @@ defmodule Thurim.DeviceKeys.DeviceKey do
   @foreign_key_type :binary_id
   schema "device_keys" do
     belongs_to :device, Device, references: :device_id, type: :string, foreign_key: :device_id
-    field :algorithm, :string
-    field :key, :string
+    field :algorithms, {:array, :string}
+    field :keys, :map
     field :signatures, :map
 
     timestamps()
@@ -17,8 +17,8 @@ defmodule Thurim.DeviceKeys.DeviceKey do
   @doc false
   def changeset(device_key, attrs) do
     device_key
-    |> cast(attrs, [:algorithm, :key, :signatures])
-    |> validate_required([:algorithm, :key])
+    |> cast(attrs, [:algorithms, :device_id, :keys, :signatures])
+    |> validate_required([:algorithms, :keys, :signatures])
     |> assoc_constraint(:device)
   end
 end

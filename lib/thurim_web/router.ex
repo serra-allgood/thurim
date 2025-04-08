@@ -67,10 +67,13 @@ defmodule ThurimWeb.Router do
       scope "/v3", V3 do
         pipe_through :access_token
 
+        get "/capabilities", CapabilitiesController, :index
+
         post "/logout", UserController, :logout
         post "/logout/all", UserController, :logout_all
         get "/account/whoami", UserController, :whoami
         get "/pushrules", UserController, :push_rules
+        put "/user/:user_id/account_data/:type", UserController, :change_account_data
 
         post "/user/:user_id/filter", FilterController, :create
         get "/user/:user_id/filter/:filter_id", FilterController, :show

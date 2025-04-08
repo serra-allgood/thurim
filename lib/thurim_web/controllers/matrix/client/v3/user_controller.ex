@@ -1,10 +1,8 @@
 defmodule ThurimWeb.Matrix.Client.V3.UserController do
+  require Logger
   use ThurimWeb, :controller
   use ThurimWeb.Controllers.MatrixController
-  alias Thurim.User
-  alias Thurim.Utils
-  alias Thurim.Devices
-  alias Thurim.AccessTokens
+  alias Thurim.{AccessTokens, Devices, User, Utils}
 
   @matrix_config Application.compile_env(:thurim, :matrix)
   @flows @matrix_config[:auth_flow_types]
@@ -19,6 +17,35 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
   # TODO: Fully implement the endpoint
   def show(conn, _params) do
     json(conn, %{})
+  end
+
+  def change_account_data(conn, %{"user_id" => user_id, "type" => type} = _params) do
+    %{sender: sender} = conn.assigns
+
+    cond do
+      sender != user_id ->
+        json_error(conn, :m_forbidden)
+
+      User.account_data_exists?(user_id, type, "") ->
+        case User.update_account_data(user_id, type, "", conn.body_params) do
+          {:ok, _} ->
+            json(conn, %{})
+
+          {:error, changeset} ->
+            Logger.error("Failed to update account_data: #{inspect(changeset, pretty: true)}")
+            json_error(conn, :m_unknown)
+        end
+
+      true ->
+        case User.create_account_data(user_id, type, "", conn.body_params) do
+          {:ok, _} ->
+            json(conn, %{})
+
+          {:error, changeset} ->
+            Logger.error("Failed to create account_data: #{inspect(changeset, pretty: true)}")
+            json_error(conn, :m_unknown)
+        end
+    end
   end
 
   def whoami(conn, _params) do
@@ -150,6 +177,7 @@ defmodule ThurimWeb.Matrix.Client.V3.UserController do
         )
 
       {:error, _name, changeset, _changes} ->
+        Logger.error("Failed to create user: #{inspect(changeset, pretty: true)}")
         send_changeset_error_to_json(conn, changeset)
     end
   end

@@ -32,14 +32,40 @@ defmodule Thurim.User do
     UUID.uuid4() |> Base.hex_encode32(padding: false, case: :lower)
   end
 
-  def get_account_data(room_id, mx_user_id, since) do
+  def account_data_exists?(mx_user_id, type, room_id) do
     from(a in AccountData,
       where: a.room_id == ^room_id,
       where: a.localpart == ^extract_localpart(mx_user_id),
-      where: a.inserted_at >= ^DateTime.from_unix!(since, :millisecond),
+      where: a.type == ^type
+    )
+    |> Repo.exists?()
+  end
+
+  def get_account_data(room_id, mx_user_id, since) do
+    since = DateTime.from_unix!(since, :millisecond)
+
+    from(a in AccountData,
+      where: a.room_id == ^room_id,
+      where: a.localpart == ^extract_localpart(mx_user_id),
+      where: a.inserted_at >= ^since or a.updated_at >= ^since,
       select: %{"type" => a.type, "content" => a.content}
     )
     |> Repo.all()
+  end
+
+  def update_account_data(mx_user_id, type, room_id, content) do
+    from(a in AccountData,
+      where: a.localpart == ^extract_localpart(mx_user_id),
+      where: a.type == ^type,
+      where: a.room_id == ^room_id
+    )
+    |> Repo.one()
+    |> update_account_data(%{content: content})
+  end
+
+  def create_account_data(mx_user_id, type, room_id, content) do
+    %{localpart: extract_localpart(mx_user_id), type: type, room_id: room_id, content: content}
+    |> create_account_data()
   end
 
   def permission_to_create_event?(sender, room_id, event_type, is_state_event) do
@@ -193,6 +219,12 @@ defmodule Thurim.User do
     |> Repo.insert()
   end
 
+  def create_account_data(attrs \\ %{}) do
+    %AccountData{}
+    |> AccountData.changeset(attrs)
+    |> Repo.insert()
+  end
+
   @doc """
   Updates a account.
 
@@ -208,6 +240,12 @@ defmodule Thurim.User do
   def update_account(%Account{} = account, attrs) do
     account
     |> Account.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_account_data(%AccountData{} = account_data, attrs) do
+    account_data
+    |> AccountData.changeset(attrs)
     |> Repo.update()
   end
 
