@@ -48,7 +48,7 @@ defmodule Thurim.Presence.PresenceServer do
 
   @impl true
   def handle_cast(:notify_listeners, state) do
-    Enum.each(state.listeners, fn pid -> send(pid, :edu_update) end)
+    Enum.each(state.listeners, fn pid -> send(pid, :check_sync) end)
     {:noreply, %{state | listeners: MapSet.new()}}
   end
 

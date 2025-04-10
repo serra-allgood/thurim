@@ -8,7 +8,21 @@ defmodule Thurim.DeviceKeys do
   import Ecto.Query, warn: false
   alias Thurim.Repo
 
-  alias Thurim.DeviceKeys.{DeviceKey, OneTimeKey}
+  alias Thurim.Devices.Device
+  alias Thurim.DeviceKeys.{CrossSigningKey, DeviceKey, OneTimeKey}
+
+  def process_cross_signing_key(_sender, key) when is_nil(key), do: {:ok, nil}
+
+  def process_cross_signing_key(sender, key) do
+    params = %{
+      mx_user_id: sender,
+      usage: key["usage"],
+      keys: key["keys"],
+      signatures: key["signatures"]
+    }
+
+    create_cross_signing_key(params)
+  end
 
   def process_device_keys(device_keys) when is_nil(device_keys) do
     {:ok, nil}
@@ -64,6 +78,79 @@ defmodule Thurim.DeviceKeys do
     |> Repo.all()
   end
 
+  def query_keys(query) do
+    %{device_keys: Enum.reduce(query, %{}, &query_key_helper/2)}
+  end
+
+  defp query_key_helper({mx_user_id, []}, acc) do
+    device_keys =
+      from(dk in DeviceKey,
+        join: d in Device,
+        on: d.device_id == dk.device_id,
+        where: d.mx_user_id == ^mx_user_id,
+        select: %{
+          algorithms: dk.algorithms,
+          device_id: dk.device_id,
+          keys: dk.keys,
+          signatures: dk.signatures,
+          display_name: d.display_name
+        }
+      )
+      |> Repo.all()
+
+    Map.put(
+      acc,
+      mx_user_id,
+      Enum.reduce(device_keys, %{}, fn key, acc ->
+        Map.put(acc, key.device_id, %{
+          algorithms: key.algorithms,
+          device_id: key.device_id,
+          keys: key.keys,
+          signatures: key.signatures,
+          user_id: mx_user_id,
+          unsigned: %{
+            display_name: key.display_name
+          }
+        })
+      end)
+    )
+  end
+
+  defp query_key_helper({mx_user_id, device_ids}, acc) do
+    device_keys =
+      from(dk in DeviceKey,
+        join: d in Device,
+        on: d.device_id == dk.device_id,
+        where: d.mx_user_id == ^mx_user_id,
+        where: d.device_id in ^device_ids,
+        select: %{
+          algorithms: dk.algorithms,
+          device_id: dk.device_id,
+          keys: dk.keys,
+          signatures: dk.signatures,
+          display_name: d.display_name
+        }
+      )
+      |> Repo.all()
+
+    Map.put(
+      acc,
+      mx_user_id,
+      Enum.reduce(device_keys, %{}, fn key, acc ->
+        Map.put(acc, key.device_id, %{
+          algorithms: key.algorithms,
+          device_id: key.device_id,
+          keys: key.keys,
+          signatures: key.signatures,
+          user_id: mx_user_id,
+          unsigned: %{
+            display_name: key.display_name
+          }
+        })
+      end)
+    )
+  end
+
   @doc """
   Returns the list of keys.
 
@@ -93,18 +180,12 @@ defmodule Thurim.DeviceKeys do
   """
   def get_key!(id), do: Repo.get!(Key, id)
 
-  @doc """
-  Creates a key.
+  def create_cross_signing_key(attrs \\ %{}) do
+    %CrossSigningKey{}
+    |> CrossSigningKey.changeset(attrs)
+    |> Repo.insert()
+  end
 
-  ## Examples
-
-      iex> create_key(%{field: value})
-      {:ok, %Key{}}
-
-      iex> create_key(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
   def create_device_key(attrs \\ %{}) do
     %DeviceKey{}
     |> DeviceKey.changeset(attrs)

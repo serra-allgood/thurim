@@ -4,8 +4,25 @@ defmodule ThurimWeb.Matrix.Client.V3.KeysController do
 
   alias Thurim.{DeviceKeys, Rooms.RoomMembership}
 
-  def query(conn, _params) do
-    json(conn, %{})
+  def device_singing(conn, params) do
+    %{sender: sender} = conn.assigns
+    master_key = Map.get(params, "master_key")
+    self_signing_key = Map.get(params, "self_signing_key")
+    user_signing_key = Map.get(params, "user_signing_key")
+
+    with {:ok, _} <- DeviceKeys.process_cross_signing_key(sender, master_key),
+         {:ok, _} <- DeviceKeys.process_cross_signing_key(sender, self_signing_key),
+         {:ok, _} <- DeviceKeys.process_cross_signing_key(sender, user_signing_key) do
+      json(conn, %{})
+    else
+      {:error, _} -> json_error(conn, :m_unknown)
+    end
+  end
+
+  # TODO: Implement lookup via federation with timeout
+  def query(conn, %{"device_keys" => device_key_query} = _params) do
+    device_keys = DeviceKeys.query_keys(device_key_query)
+    json(conn, device_keys)
   end
 
   def upload(conn, %{"device_keys" => %{"user_id" => mx_user_id} = device_keys} = params) do

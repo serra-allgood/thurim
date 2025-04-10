@@ -54,6 +54,7 @@ defmodule ThurimWeb.Router do
         pipe_through :interactive_auth
 
         post "/register", UserController, :create
+        post "/keys/device_signing/upload", KeysController, :deving_signing
       end
 
       scope "/r0", V3 do

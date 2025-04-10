@@ -9,6 +9,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     Rooms.RoomMembership,
     Rooms.RoomSupervisor,
     Rooms.RoomServer,
+    Sync.SyncServer,
     Sync.SyncToken,
     User,
     Transactions
@@ -33,13 +34,16 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
   def leave(conn, %{"room_id" => room_id} = _params) do
     %{sender: sender} = conn.assigns
 
-    attrs = %{"room_id" => room_id, "event_state_key" => sender}
+    attrs = %{"room_id" => room_id, "event_state_key" => sender, "sender" => sender}
 
     with {:ok, _} <- Events.create_event(attrs, "m.room.member", "leave") do
       RoomServer.notify_listeners(room_id)
+      SyncServer.notify_listeners()
       json(conn, %{})
     else
-      {:error, errors} -> send_changeset_error_to_json(conn, errors)
+      {:error, changeset} ->
+        Logger.error("Failed to leave room: #{inspect(changeset, pretty: true)}")
+        send_changeset_error_to_json(conn, changeset)
     end
   end
 
@@ -60,6 +64,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       end
 
       RoomServer.notify_listeners(room_id)
+      SyncServer.notify_listeners()
       json(conn, %{room_id: room_id})
     else
       false ->
@@ -89,6 +94,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
       {:ok, %{room: room} = _changes} ->
         RoomSupervisor.start_room(room.room_id)
         RoomServer.notify_listeners(room.room_id)
+        SyncServer.notify_listeners()
         json(conn, %{room_id: room.room_id})
 
       {:error, _step, changeset} ->
@@ -223,6 +229,7 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
              state_key
            ) do
       RoomServer.notify_listeners(room_id)
+      SyncServer.notify_listeners()
       json(conn, %{"event_id" => event.event_id})
     else
       {:has_permission, false} -> json_error(conn, :m_forbidden)

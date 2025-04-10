@@ -6,6 +6,7 @@ defmodule Thurim.Sync.SyncCache do
     adapter: Nebulex.Adapters.Local
 
   alias Thurim.Sync.{
+    SyncServer,
     SyncState,
     SyncState.InvitedRoom,
     SyncState.JoinedRoom,
@@ -126,7 +127,7 @@ defmodule Thurim.Sync.SyncCache do
 
     cond do
       !SyncState.empty?(response) ->
-        put({sender, nil}, response)
+        put({sender, since}, response)
         WaitForIt.signal(:sync_update)
         {sender, response}
 
@@ -135,13 +136,7 @@ defmodule Thurim.Sync.SyncCache do
         listen_for_updates(current_rooms)
 
         receive do
-          {:room_update, room_id} ->
-            if current_rooms |> Enum.map(& &1.room_id) |> Enum.member?(room_id) do
-              sync_helper(sender, filter, params, since)
-            end
-
-          :edu_update ->
-            sync_helper(sender, filter, params, since)
+          :check_sync -> sync_helper(sender, filter, params, since)
         end
 
       true ->
@@ -162,10 +157,12 @@ defmodule Thurim.Sync.SyncCache do
   defp listen_for_updates(rooms) do
     Enum.each(rooms, &RoomServer.register_listener(&1.room_id, self()))
     PresenceServer.register_listener(self())
+    SyncServer.register_listener(self())
   end
 
   defp silence_updates(rooms) do
     Enum.each(rooms, &RoomServer.unregister_listener(&1.room_id, self()))
     PresenceServer.unregister_listener(self())
+    SyncServer.unregister_listener(self())
   end
 end
