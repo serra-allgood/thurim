@@ -1,4 +1,4 @@
-defmodule Thurim.DeviceKeys.CrossSigningKey do
+defmodule Thurim.Keys.CrossSigningKey do
   use Ecto.Schema
   import Ecto.Changeset
 

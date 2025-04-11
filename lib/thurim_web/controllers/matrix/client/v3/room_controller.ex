@@ -210,9 +210,10 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
 
   def create_state_event(
         conn,
-        %{"room_id" => room_id, "event_type" => event_type, "state_key" => state_key} = _params
+        %{"room_id" => room_id, "event_type" => event_type} = params
       ) do
     %{sender: sender} = conn.assigns
+    state_key = Map.get(params, "state_key", "")
 
     with {:has_permission, true} <-
            {:has_permission, User.permission_to_create_event?(sender, room_id, event_type, true)},

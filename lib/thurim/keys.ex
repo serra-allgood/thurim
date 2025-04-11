@@ -1,4 +1,4 @@
-defmodule Thurim.DeviceKeys do
+defmodule Thurim.Keys do
   require Logger
 
   @moduledoc """
@@ -6,10 +6,90 @@ defmodule Thurim.DeviceKeys do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias Thurim.Repo
-
   alias Thurim.Devices.Device
-  alias Thurim.DeviceKeys.{CrossSigningKey, DeviceKey, OneTimeKey}
+  alias Thurim.Keys.{CrossSigningKey, DeviceKey, KeyBackup, OneTimeKey, RoomKey}
+
+  @etag_length 6
+
+  def backup_exists?(account) do
+    from(kb in KeyBackup, where: kb.localpart == ^account.localpart)
+    |> Repo.exists?()
+  end
+
+  def show_version_response(account) do
+    key_backup = get_key_backup(account.localpart)
+
+    %{
+      algorithm: key_backup.algorithm,
+      auth_data: key_backup.auth_data,
+      etag: key_backup.etag,
+      version: key_backup.version,
+      count:
+        from(kb in KeyBackup,
+          where: kb.id == ^key_backup.id,
+          join: rk in RoomKey,
+          on: rk.key_backup_id == kb.id,
+          select: count(rk.id)
+        )
+        |> Repo.one()
+    }
+  end
+
+  def generate_backup_etag() do
+    :crypto.strong_rand_bytes(@etag_length)
+    |> Base.url_encode64(padding: false, ignore: :whitespace)
+    |> binary_part(0, @etag_length)
+  end
+
+  def backup_room_keys(room_keys, account) do
+    key_backup = get_key_backup(account.localpart)
+    multi = Multi.new()
+
+    %{count: count, multi: multi} =
+      Enum.reduce(room_keys, %{count: 0, multi: multi}, fn {room_id, sessions}, acc ->
+        attrs = %{room_id: room_id, sessions: sessions, key_backup_id: key_backup.id}
+
+        multi =
+          acc.multi
+          |> Multi.insert("room_key_for_#{room_id}", RoomKey.changeset(%RoomKey{}, attrs))
+
+        %{acc | count: acc.count + 1, multi: multi}
+      end)
+
+    new_etag = generate_backup_etag()
+
+    multi
+    |> Multi.update(multi, :update_etag, KeyBackup.changeset(key_backup, %{etag: new_etag}))
+
+    case Repo.transaction(multi) do
+      {:ok, _} -> {:ok, %{count: count, etag: new_etag}}
+      {:error, _, _, _} -> :error
+    end
+  end
+
+  def get_keys(account) do
+    key_backup = get_key_backup(account.localpart)
+
+    query =
+      from(rk in RoomKey,
+        where: rk.key_backup_id == ^key_backup.id,
+        select: %{room_id: rk.room_id, sessions: rk.sessions}
+      )
+      |> Repo.all()
+
+    %{
+      rooms:
+        Enum.reduce(query, %{}, fn %{room_id: room_id, sessions: sessions}, acc ->
+          Map.put(acc, room_id, sessions)
+        end)
+    }
+  end
+
+  def get_key_backup(localpart) do
+    Repo.get_by(KeyBackup, localpart: localpart)
+  end
 
   def process_cross_signing_key(_sender, key) when is_nil(key), do: {:ok, nil}
 

@@ -90,6 +90,7 @@ defmodule ThurimWeb.Router do
         get "/rooms/:room_id/members", RoomController, :members
         get "/rooms/:room_id/state", RoomController, :state
         get "/rooms/:room_id/state/:event_type/:state_key", RoomController, :state_event
+        put "/rooms/:room_id/state/:event_type", RoomController, :create_state_event
         put "/rooms/:room_id/state/:event_type/:state_key", RoomController, :create_state_event
         put "/rooms/:room_id/send/:event_type/:txn_id", RoomController, :send_message
         put "/rooms/:room_id/redact/:event_id/:txn_id", RoomController, :create_redaction
@@ -106,6 +107,9 @@ defmodule ThurimWeb.Router do
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
+        put "/room_keys/keys", KeysController, :backup
+        get "/room_keys/keys", KeysController, :get_keys
+        get "/room_keys/version", KeysController, :show_version
 
         get "/directory/room/:room_alias", DirectoryController, :room_alias
       end
@@ -150,6 +154,9 @@ defmodule ThurimWeb.Router do
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
         get "/keys/changes", KeysController, :changes
+        put "/room_keys/keys", KeysController, :backup
+        get "/room_keys/keys", KeysController, :get_keys
+        get "/room_keys/version", KeysController, :show_version
       end
     end
 

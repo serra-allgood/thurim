@@ -1,4 +1,4 @@
-defmodule Thurim.DeviceKeys.DeviceKey do
+defmodule Thurim.Keys.DeviceKey do
   use Ecto.Schema
   import Ecto.Changeset
   alias Thurim.Devices.Device
