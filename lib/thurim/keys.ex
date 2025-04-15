@@ -18,6 +18,42 @@ defmodule Thurim.Keys do
     |> Repo.exists?()
   end
 
+  def claim_one_time_keys(one_time_keys) do
+    response =
+      Enum.reduce(one_time_keys, %{}, fn {mx_user_id, device_algorithm}, acc ->
+        value =
+          Enum.reduce(device_algorithm, %{}, fn {device_id, algorithm}, acc ->
+            one_time_key =
+              from(otk in OneTimeKey,
+                where: otk.device_id == ^device_id,
+                where: otk.algorithm == ^algorithm,
+                limit: 1
+              )
+              |> Repo.one()
+
+            case Repo.delete(one_time_key) do
+              {:ok, one_time_key} ->
+                value =
+                  %{
+                    "#{one_time_key.algorithm}:#{one_time_key.key_id}" => %{
+                      "key" => one_time_key.key,
+                      "signatures" => one_time_key.signatures
+                    }
+                  }
+
+                Map.put(acc, device_id, value)
+
+              {:error, _} ->
+                acc
+            end
+          end)
+
+        Map.put(acc, mx_user_id, value)
+      end)
+
+    {:ok, %{"one_time_keys" => response}}
+  end
+
   def show_version_response(account) do
     key_backup = get_key_backup(account.localpart)
 

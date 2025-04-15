@@ -78,7 +78,7 @@ defmodule Thurim.Events.Event do
   end
 
   defp set_auth_events(changeset) do
-    if get_field(changeset, :auth_events) == nil do
+    if get_field(changeset, :auth_events) |> is_nil() do
       case apply_action(changeset, :get_auth_events) do
         {:ok, event} ->
           auth_event_ids = Events.get_auth_event_ids(event)

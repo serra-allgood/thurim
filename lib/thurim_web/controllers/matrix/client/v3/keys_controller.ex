@@ -13,6 +13,13 @@ defmodule ThurimWeb.Matrix.Client.V3.KeysController do
     end
   end
 
+  def claim(conn, %{"one_time_keys" => one_time_keys} = _params) do
+    case Keys.claim_one_time_keys(one_time_keys) do
+      {:ok, response} -> json(conn, response)
+      :error -> json_error(conn, :m_unknown)
+    end
+  end
+
   def show_version(conn, _params) do
     %{current_account: current_account} = conn.assigns
 

@@ -99,6 +99,7 @@ defmodule ThurimWeb.Router do
         post "/join/:room_id_or_alias", RoomController, :join
         post "/rooms/:room_id/join", RoomController, :join
         post "/rooms/:room_id/leave", RoomController, :leave
+        get "/rooms/:room_id/aliases", RoomController, :aliases
 
         put "/rooms/:room_id/typing/:mx_user_id", TypingController, :update
 
@@ -107,6 +108,7 @@ defmodule ThurimWeb.Router do
 
         post "/keys/query", KeysController, :query
         post "/keys/upload", KeysController, :upload
+        post "/keys/claim", KeysController, :claim
         put "/room_keys/keys", KeysController, :backup
         get "/room_keys/keys", KeysController, :get_keys
         get "/room_keys/version", KeysController, :show_version

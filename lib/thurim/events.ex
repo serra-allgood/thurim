@@ -549,10 +549,12 @@ defmodule Thurim.Events do
   end
 
   def create_event(attrs, "initial_state") do
-    event_state_key = Map.get(attrs, "event_state_key", nil)
+    {:ok, event_state_key} =
+      Map.get(attrs, "event_state_key", "")
+      |> find_or_create_state_key()
 
     Map.merge(attrs, %{
-      "state_key" => event_state_key,
+      "state_key" => event_state_key.state_key,
       "depth" => get_last_depth(attrs["room_id"]) + 1
     })
     |> create_event()

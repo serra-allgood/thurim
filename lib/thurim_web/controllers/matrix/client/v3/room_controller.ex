@@ -15,6 +15,11 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
     Transactions
   }
 
+  # TODO: Fully implement
+  def aliases(conn, %{"room_id" => _room_id} = _params) do
+    json(conn, %{"aliases" => []})
+  end
+
   def index(conn, params) do
     server = Map.get(params, "server")
     limit = Map.get(params, "limit")
