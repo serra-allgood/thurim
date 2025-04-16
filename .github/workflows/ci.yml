@@ -1,0 +1,35 @@
+'on': [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{matrix.os}}
+    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - otp: '24'
+            elixir: '1.11'
+            os: 'ubuntu-22.04'
+          - otp: '24'
+            elixir: '1.12'
+            os: 'ubuntu-22.04'
+          - otp: '24'
+            elixir: '1.13'
+            os: 'ubuntu-22.04'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-OTP${{matrix.otp}}-Elixir${{matrix.elixir}}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+      - run: pip3 install pifpaf
+      - run: mv .github/workflows/config.exs config/test.exs
+      - run: mix deps.get
+      - run: pifpaf run postgresql -- mix test
