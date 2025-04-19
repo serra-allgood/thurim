@@ -363,6 +363,9 @@ defmodule ThurimWeb.Matrix.Client.V3.RoomController do
           {:error, _} ->
             json_error(conn, :m_bad_type)
         end
+
+      true ->
+        json_error(conn, :m_forbidden)
     end
   end
 end

@@ -14,35 +14,35 @@ defmodule Thurim.Sync.SyncCache do
     SyncToken
   }
 
-  alias Thurim.{Events, Presence.PresenceServer, Rooms, Rooms.RoomServer}
+  alias Thurim.{DeviceMessages, Events, Presence.PresenceServer, Rooms, Rooms.RoomServer}
 
-  def fetch_sync(sender, filter, timeout, params) do
+  def fetch_sync(sender, device_id, filter, timeout, params) do
     case Map.fetch(params, "since") do
       {:ok, since} ->
-        check_sync(sender, filter, timeout, params, since)
+        check_sync(sender, device_id, filter, timeout, params, since)
 
       :error ->
-        build_sync(sender, filter, timeout, params, nil)
+        build_sync(sender, device_id, filter, timeout, params, nil)
     end
   end
 
-  def check_sync(sender, filter, timeout, params, since) do
-    case get({sender, since}) do
-      nil -> build_sync(sender, filter, timeout, params, since)
+  def check_sync(sender, device_id, filter, timeout, params, since) do
+    case get({sender, device_id, since}) do
+      nil -> build_sync(sender, device_id, filter, timeout, params, since)
       cached -> cached
     end
   end
 
-  def build_sync(sender, filter, 0 = _timeout, params, since) do
-    {^sender, response} = sync_helper(sender, filter, params, since)
+  def build_sync(sender, device_id, filter, 0 = _timeout, params, since) do
+    {^sender, ^device_id, response} = sync_helper(sender, device_id, filter, params, since)
     response
   end
 
-  def build_sync(sender, filter, timeout, params, since) do
-    WaitForIt.case_wait sync_helper(sender, filter, params, since, poll: true),
+  def build_sync(sender, device_id, filter, timeout, params, since) do
+    WaitForIt.case_wait sync_helper(sender, device_id, filter, params, since, poll: true),
       signal: :sync_update,
       timeout: timeout do
-      {^sender, response} -> response
+      {^sender, ^device_id, response} -> response
     else
       _ ->
         Rooms.list_rooms()
@@ -60,20 +60,20 @@ defmodule Thurim.Sync.SyncCache do
   3. For each room response type, diff from since and now and aggregate results
   """
 
-  def base_sync_helper(sender, filter, _params, since) do
+  def base_sync_helper(sender, device_id, filter, _params, since) do
     current_rooms = Rooms.all_user_rooms(sender)
 
     tokens =
       if is_nil(since) do
-        ["0", "0", "0"]
+        ["0", "0", "0", "0"]
       else
         String.split(since, "_")
       end
       |> Enum.map(&String.to_integer/1)
 
-    [pdu_since, _device_list_since, edu_since] = tokens
+    [pdu_since, device_message_since, _device_list_since, edu_since] = tokens
 
-    SyncToken.current_sync_token(tokens)
+    SyncToken.current_sync_token(sender, device_id, tokens)
     |> SyncState.new()
     |> update_in([:rooms], fn rooms ->
       # Add invite rooms
@@ -119,28 +119,34 @@ defmodule Thurim.Sync.SyncCache do
       #   end)
       # end)
     end)
+    |> update_in([:to_device], fn events ->
+      %{
+        events
+        | events: DeviceMessages.get_device_messages(sender, device_id, device_message_since)
+      }
+    end)
   end
 
-  def sync_helper(sender, filter, params, since, opts \\ []) do
+  def sync_helper(sender, device_id, filter, params, since, opts \\ []) do
     poll = Keyword.get(opts, :poll, false)
-    response = base_sync_helper(sender, filter, params, since)
+    response = base_sync_helper(sender, device_id, filter, params, since)
 
     cond do
       !SyncState.empty?(response) ->
-        put({sender, since}, response)
+        put({sender, device_id, since}, response)
         WaitForIt.signal(:sync_update)
-        {sender, response}
+        {sender, device_id, response}
 
       poll ->
         current_rooms = Rooms.all_user_rooms(sender) |> Enum.map(fn {room, _} -> room end)
         listen_for_updates(current_rooms)
 
         receive do
-          :check_sync -> sync_helper(sender, filter, params, since)
+          :check_sync -> sync_helper(sender, device_id, filter, params, since)
         end
 
       true ->
-        {sender, response}
+        {sender, device_id, response}
     end
   end
 

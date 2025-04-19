@@ -6,7 +6,7 @@ defmodule Thurim.Sync.SyncState do
   }
 
   def new(next_batch) when is_nil(next_batch) do
-    new("0")
+    new("0_0_0_0")
   end
 
   def new(next_batch) when is_integer(next_batch) do
@@ -20,7 +20,8 @@ defmodule Thurim.Sync.SyncState do
       account_data: AccountData.new(),
       next_batch: next_batch,
       presence: Presence.new(),
-      rooms: Rooms.new()
+      rooms: Rooms.new(),
+      to_device: %{events: %{}}
     }
   end
 

@@ -6,7 +6,7 @@ defmodule Thurim.Repo.Migrations.CreateTransactions do
       add :localpart, :text, null: false, primary_key: true
       add :device_id, :text, null: false, primary_key: true
       add :transaction_id, :text, null: false, primary_key: true
-      add :event_id, :text, null: false
+      add :event_id, :text
 
       timestamps()
     end

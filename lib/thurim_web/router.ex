@@ -101,6 +101,8 @@ defmodule ThurimWeb.Router do
         post "/rooms/:room_id/leave", RoomController, :leave
         get "/rooms/:room_id/aliases", RoomController, :aliases
 
+        put "/sendToDevice/:event_type/:txn_id", DeviceMessageController, :send_message
+
         put "/rooms/:room_id/typing/:mx_user_id", TypingController, :update
 
         post "/rooms/:room_id/receipt/:receipt_type/:event_id", ReceiptController, :create

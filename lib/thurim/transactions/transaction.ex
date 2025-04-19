@@ -16,6 +16,6 @@ defmodule Thurim.Transactions.Transaction do
   def changeset(transaction, attrs) do
     transaction
     |> cast(attrs, [:localpart, :device_id, :transaction_id, :event_id])
-    |> validate_required([:localpart, :device_id, :transaction_id, :event_id])
+    |> validate_required([:localpart, :device_id, :transaction_id])
   end
 end
