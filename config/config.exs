@@ -80,7 +80,7 @@ config :thurim_core,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :thurim_core, ThurimCore.Mailer, adapter: Swoosh.Adapters.Local
+# config :thurim_core, ThurimCore.Mailer, adapter: Swoosh.Adapters.Local
 
 # Sample configuration:
 #

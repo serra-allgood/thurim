@@ -21,7 +21,7 @@ config :thurim_media, ThurimMedia.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "cRCMa3n6wdspaRYfQi2TOApETjyQnwHZ/ceh91JKfmFqxLdMYhuy8dX88v39eQ/N",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   watchers: []
 
 # ## SSL Support
@@ -71,7 +71,7 @@ config :thurim_appservice, ThurimAppservice.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "yNVr/sA8kl/y6FPwaYt/BPrW9tseqMlWC/+XHSWQCdRScQOE/OpiDvqgddso8z+e",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   watchers: []
 
 # ## SSL Support
@@ -121,7 +121,7 @@ config :thurim_federation, ThurimFederation.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "kCot5fw6/yYmMoQuDbJ8kP27RQN82BjA4Vt3sCXb4FH+qNj0jCvqXqCEEVe+WwG+",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   watchers: []
 
 # ## SSL Support
@@ -171,7 +171,7 @@ config :thurim_client_api, ThurimClientApi.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "emQLedXu+aGdWPoBWKLpqaZKMaieplS+ok+t87PyvU0LH6k0AiqPeumEY804R/fJ",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   watchers: []
 
 # ## SSL Support

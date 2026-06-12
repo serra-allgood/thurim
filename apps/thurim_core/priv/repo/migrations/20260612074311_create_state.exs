@@ -25,8 +25,8 @@ defmodule ThurimCore.Repo.Migrations.CreateState do
       add :event_id, references(:events, column: :event_id, type: :text, on_delete: :delete_all),
         null: false
 
-      add :display_name, :text
-      add :avatar_url, :text
+      # add :display_name, :text
+      # add :avatar_url, :text
     end
 
     create constraint(:room_memberships, :valid_membership,

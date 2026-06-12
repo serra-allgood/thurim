@@ -21,6 +21,12 @@ defmodule ThurimCore.Repo.Migrations.CreateUsers do
 
     create unique_index(:users, [:localpart])
 
+    create constraint(
+             :users,
+             :valid_user_id,
+             check: "user_id ~ '^@[a-zA-Z0-9_+=\./-]+:.+$'"
+           )
+
     create table(:user_threepids, primary_key: false) do
       add :user_id, references(:users, column: :user_id, type: :text, on_delete: :delete_all),
         null: false

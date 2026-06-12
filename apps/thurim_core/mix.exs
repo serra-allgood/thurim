@@ -40,7 +40,8 @@ defmodule ThurimCore.MixProject do
       {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
-      {:jason, "~> 1.2"}
+      {:jason, "~> 1.2"},
+      {:fields, "~> 2.11"}
     ]
   end
 

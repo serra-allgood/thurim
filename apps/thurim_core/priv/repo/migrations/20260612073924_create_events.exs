@@ -49,7 +49,9 @@ defmodule ThurimCore.Repo.Migrations.CreateEvents do
       add :event_id, references(:events, column: :event_id, type: :text, on_delete: :delete_all),
         primary_key: true
 
-      add :prev_event_id, :text, primary_key: true
+      add :prev_event_id,
+          references(:events, column: :event_id, type: :text, on_delete: :delete_all),
+          primary_key: true
     end
 
     create index(:event_edges, [:prev_event_id], name: :idx_event_edges_prev)
@@ -59,8 +61,12 @@ defmodule ThurimCore.Repo.Migrations.CreateEvents do
       add :event_id, references(:events, column: :event_id, type: :text, on_delete: :delete_all),
         primary_key: true
 
-      add :auth_event_id, :text, primary_key: true
+      add :auth_event_id,
+          references(:events, column: :event_id, type: :text, on_delete: :delete_all),
+          primary_key: true
     end
+
+    create index(:event_auth, :event_id)
 
     # Forward extremities = current DAG leaves per room
     create table(:room_forward_extremities, primary_key: false) do
