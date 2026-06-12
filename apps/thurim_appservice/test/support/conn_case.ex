@@ -32,7 +32,7 @@ defmodule ThurimAppservice.ConnCase do
   end
 
   setup tags do
-    ThurimAppservice.DataCase.setup_sandbox(tags)
+    ThurimCore.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

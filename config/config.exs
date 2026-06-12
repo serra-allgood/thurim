@@ -10,7 +10,7 @@
 import Config
 
 config :thurim_media,
-  ecto_repos: [ThurimMedia.Repo],
+  ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
@@ -25,7 +25,7 @@ config :thurim_media, ThurimMedia.Endpoint,
   live_view: [signing_salt: "ShctnzrA"]
 
 config :thurim_appservice,
-  ecto_repos: [ThurimAppservice.Repo],
+  ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
@@ -40,7 +40,7 @@ config :thurim_appservice, ThurimAppservice.Endpoint,
   live_view: [signing_salt: "HbAKtYpT"]
 
 config :thurim_federation,
-  ecto_repos: [ThurimFederation.Repo],
+  ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
@@ -55,7 +55,7 @@ config :thurim_federation, ThurimFederation.Endpoint,
   live_view: [signing_salt: "SuTRoGfp"]
 
 config :thurim_client_api,
-  ecto_repos: [ThurimClientApi.Repo],
+  ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
