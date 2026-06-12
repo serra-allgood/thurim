@@ -82,110 +82,6 @@ config :thurim_core,
 # at the `config/runtime.exs`.
 config :thurim_core, ThurimCore.Mailer, adapter: Swoosh.Adapters.Local
 
-config :thurim_client_api,
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_client_api, ThurimClientApi.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimClientApi.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimClientApi.PubSub,
-  live_view: [signing_salt: "g2kdMTcI"]
-
-config :thurim_media,
-  ecto_repos: [ThurimMedia.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_media, ThurimMedia.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimMedia.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimMedia.PubSub,
-  live_view: [signing_salt: "uGFAwc+C"]
-
-config :thurim_appservice,
-  ecto_repos: [ThurimAppservice.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_appservice, ThurimAppservice.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimAppservice.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimAppservice.PubSub,
-  live_view: [signing_salt: "Aur7C2w3"]
-
-config :thurim_federation,
-  ecto_repos: [ThurimFederation.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_federation, ThurimFederation.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimFederation.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimFederation.PubSub,
-  live_view: [signing_salt: "ZFtM6r49"]
-
-config :thurim_client_api,
-  ecto_repos: [ThurimClientApi.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_client_api, ThurimClientApi.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimClientApi.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimClientApi.PubSub,
-  live_view: [signing_salt: "Y8avSFmd"]
-
-config :thurim_federation,
-  ecto_repos: [ThurimFederation.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_federation, ThurimFederation.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimFederation.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimFederation.PubSub,
-  live_view: [signing_salt: "prRxrU4U"]
-
-config :thurim_client_api,
-  ecto_repos: [ThurimClientApi.Repo],
-  generators: [context_app: false]
-
-# Configures the endpoint
-config :thurim_client_api, ThurimClientApi.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimClientApi.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimClientApi.PubSub,
-  live_view: [signing_salt: "KkPbGaiy"]
-
 # Sample configuration:
 #
 #     config :logger, :default_handler,
@@ -195,7 +91,6 @@ config :thurim_client_api, ThurimClientApi.Endpoint,
 #       format: "$date $time [$level] $metadata$message\n",
 #       metadata: [:user_id]
 #
-import Config
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,
