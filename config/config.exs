@@ -9,65 +9,47 @@
 # move said applications out of the umbrella.
 import Config
 
+config :thurim_gateway,
+  generators: [context_app: false]
+
+# Configures the endpoint
+config :thurim_gateway, ThurimGateway.Endpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [json: ThurimGateway.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: ThurimGateway.PubSub,
+  live_view: [signing_salt: "vXi++Tt+"]
+
 config :thurim_media,
   ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
-config :thurim_media, ThurimMedia.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimMedia.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimMedia.PubSub,
-  live_view: [signing_salt: "ShctnzrA"]
+config :thurim_media, ThurimMedia.Endpoint, server: false
 
 config :thurim_appservice,
   ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
-config :thurim_appservice, ThurimAppservice.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimAppservice.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimAppservice.PubSub,
-  live_view: [signing_salt: "HbAKtYpT"]
+config :thurim_appservice, ThurimAppservice.Endpoint, server: false
 
 config :thurim_federation,
   ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
-config :thurim_federation, ThurimFederation.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimFederation.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimFederation.PubSub,
-  live_view: [signing_salt: "SuTRoGfp"]
+config :thurim_federation, ThurimFederation.Endpoint, server: false
 
 config :thurim_client_api,
   ecto_repos: [ThurimCore.Repo],
   generators: [context_app: false]
 
 # Configures the endpoint
-config :thurim_client_api, ThurimClientApi.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [json: ThurimClientApi.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: ThurimClientApi.PubSub,
-  live_view: [signing_salt: "Tivk3mKJ"]
+config :thurim_client_api, ThurimClientApi.Endpoint, server: false
 
 # Configure Mix tasks and generators
 config :thurim_core,

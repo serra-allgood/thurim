@@ -10,7 +10,12 @@ defmodule ThurimCore.Application do
     children = [
       ThurimCore.Repo,
       {DNSCluster, query: Application.get_env(:thurim_core, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: ThurimCore.PubSub}
+      {Phoenix.PubSub, name: ThurimCore.PubSub},
+      # {Registry, keys: :unique, name: ThurimCore.RoomRegistry},
+      # {PartitionSupervisor, child_spec: DynamicSupervisor, name: ThurimCore.DynamicSupervisors}
+      ThurimCore.Rooms.RoomSupervisor,
+      {DynamicSupervisor, name: ThurimCore.Federation.OutboundSupervisor}
+      # ThurimCore.Sync.StreamCounter
       # Start a worker by calling: ThurimCore.Worker.start_link(arg)
       # {ThurimCore.Worker, arg}
     ]
