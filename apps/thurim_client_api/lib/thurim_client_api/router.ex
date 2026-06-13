@@ -1,12 +1,33 @@
 defmodule ThurimClientApi.Router do
   use ThurimClientApi, :router
 
-  pipeline :api do
-    plug :accepts, ["json"]
+  pipeline :access_token do
+    plug ThurimClientApi.Plugs.ExtractAccessToken
+    plug ThurimClientApi.Plugs.RequireAccessToken
   end
 
-  scope "/api", ThurimClientApi do
-    pipe_through :api
+  pipeline :interactive_auth do
+    plug ThurimWeb.Plugs.InteractiveAuth
+  end
+
+  scope "/v3", ThurimClientApi do
+    pipe_through :interactive_auth
+
+    post "/register", RegistrationController, :register
+  end
+
+  scope "/v3", ThurimClientApi do
+    # Public
+    get "/register/available", RegistrationController, :available
+    post "/login", SessionController, :login
+    get "/login/sso/redirect", SsoController, :redirect
+
+    # Authenticated
+    pipe_through :access_token
+    get "/sync", SyncController, :sync
+    post "/logout", SessionController, :logout
+    get "/account/whoami", AccountController, :whoami
+    # ...etc
   end
 
   # Enable LiveDashboard in development

@@ -41,7 +41,9 @@ defmodule ThurimCore.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.2"},
-      {:fields, "~> 2.11"}
+      {:fields, "~> 2.11"},
+      {:nebulex, "~> 3.0"},
+      {:nebulex_adapters_cachex, "~> 3.0"}
     ]
   end
 

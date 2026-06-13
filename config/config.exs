@@ -9,6 +9,17 @@
 # move said applications out of the umbrella.
 import Config
 
+config :thurim_core, :matrix,
+  auth_flows: [
+    # %{stages: ["m.login.dummy"]},
+    %{stages: ["m.login.password"]}
+  ],
+  auth_flow_types: [%{"type" => "m.login.password"}],
+  default_room_version: "9",
+  supported_room_versions: ~w(9),
+  domain: "localhost",
+  homeserver_url: "https://localhost:4001"
+
 config :thurim_gateway,
   generators: [context_app: false]
 
@@ -54,6 +65,8 @@ config :thurim_client_api, ThurimClientApi.Endpoint, server: false
 # Configure Mix tasks and generators
 config :thurim_core,
   ecto_repos: [ThurimCore.Repo]
+
+config :thurim_core, ThurimCore.Cache.AuthSessionCache, stats: true
 
 # Configure the mailer
 #

@@ -37,7 +37,7 @@ defmodule ThurimCore.Repo.Migrations.CreateTokens do
     end
 
     create table(:access_tokens, primary_key: false) do
-      add :token, :text, primary_key: true
+      add :id, :binary_id, primary_key: true
 
       add :user_id, references(:users, column: :user_id, type: :text, on_delete: :delete_all),
         null: false

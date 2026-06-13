@@ -6,7 +6,7 @@ defmodule ThurimCore.Rooms.RoomSupervisor do
 
   def start_room(room_id) do
     DynamicSupervisor.start_child(
-      __MODULE__,
+      {:via, PartitionSupervisor, {ThurimCore.DynamicRoomSupervisors, self()}},
       {ThurimCore.Rooms.RoomServer, room_id}
     )
   end
