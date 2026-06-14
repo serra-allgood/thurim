@@ -37,11 +37,58 @@ defmodule ThurimClientApi do
 
   def controller do
     quote do
-      use Phoenix.Controller, formats: [:html, :json]
+      use Phoenix.Controller, formats: [:json]
 
       import Plug.Conn
+      import ThurimClientApi.Errors
+
+      plug :assign_key_names
+
+      defp assign_key_names(conn, _options) do
+        conn
+        |> assign(:action, action_name(conn))
+        |> assign(:controller, controller_module(conn))
+      end
 
       unquote(verified_routes())
+    end
+  end
+
+  def rate_limiter do
+    quote do
+      import Plug.Conn
+
+      alias ThurimClientApi.{
+        RateLimit,
+        RateLimit.RateLimitBehaviour,
+        RateLimit.RateLimitInfo,
+        RateLimit.RateLimitKey
+      }
+
+      @behaviour RateLimitBehaviour
+
+      def init(options), do: options
+
+      def call(conn, _options) do
+        %RateLimitInfo{scale: scale, limit: limit} =
+          RateLimitInfo.new()
+          |> RateLimitInfo.set_scale(get_scale(conn.assigns.action))
+          |> RateLimitInfo.set_limit(get_limit(conn.assigns.action))
+
+        conn.assigns.current_user.user_id
+        |> RateLimitKey.get_key(conn.assigns.controller, conn.assigns.action)
+        |> RateLimit.hit(scale, limit)
+        |> case do
+          {:allow, _count} ->
+            conn
+
+          {:deny, retry_after} ->
+            conn
+            |> put_resp_header("retry-after", Integer.to_string(div(retry_after, 1000)))
+            |> send_resp(429, [])
+            |> halt()
+        end
+      end
     end
   end
 

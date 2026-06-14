@@ -19,8 +19,7 @@ defmodule Thurim.MixProject do
     [
       {:req, "~> 0.5"},
       {:oban, "~> 2.23"},
-      {:ex_crypto, "~> 0.10.0"},
-      {:hammer, "~> 7.4"}
+      {:ex_crypto, "~> 0.10.0"}
     ]
   end
 end

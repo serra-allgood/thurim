@@ -37,7 +37,7 @@ defmodule ThurimGateway do
 
   def controller do
     quote do
-      use Phoenix.Controller, formats: [:html, :json]
+      use Phoenix.Controller, formats: [:json]
 
       import Plug.Conn
 

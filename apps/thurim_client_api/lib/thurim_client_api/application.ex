@@ -11,6 +11,8 @@ defmodule ThurimClientApi.Application do
       ThurimClientApi.Telemetry,
       # Start a worker by calling: ThurimClientApi.Worker.start_link(arg)
       # {ThurimClientApi.Worker, arg},
+      {ThurimClientApi.RateLimit,
+       [clean_period: :timer.minutes(1), key_older_than: :timer.hours(24)]},
       # Start to serve requests, typically the last entry
       ThurimClientApi.Endpoint
     ]

@@ -44,6 +44,7 @@ defmodule ThurimClientApi.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
+      {:hammer, "~> 7.4"},
       {:thurim_core, in_umbrella: true}
     ]
   end
