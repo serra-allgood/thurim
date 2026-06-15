@@ -11,7 +11,7 @@ defmodule ThurimGateway.Router do
   # -------------------------------------------------------
   # /.well-known — handled directly in the gateway
   # -------------------------------------------------------
-  scope "/.well-known/matrix", ThurimGatewayWeb do
+  scope "/.well-known/matrix", ThurimGateway do
     pipe_through :matrix
     get "/client", WellKnownController, :client
     get "/server", WellKnownController, :server

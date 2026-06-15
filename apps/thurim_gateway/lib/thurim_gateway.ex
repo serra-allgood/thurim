@@ -40,6 +40,7 @@ defmodule ThurimGateway do
       use Phoenix.Controller, formats: [:json]
 
       import Plug.Conn
+      import ThurimApiHelpers.Errors
 
       unquote(verified_routes())
     end

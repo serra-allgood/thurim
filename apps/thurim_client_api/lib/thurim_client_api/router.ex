@@ -1,14 +1,5 @@
 defmodule ThurimClientApi.Router do
-  use ThurimClientApi, :router
-
-  pipeline :access_token do
-    plug ThurimApiHelpers.Plugs.ExtractAccessToken
-    plug ThurimApiHelpers.Plugs.RequireAccessToken
-  end
-
-  pipeline :interactive_auth do
-    plug ThurimApiHelpers.Plugs.InteractiveAuth
-  end
+  use ThurimApiHelpers.ThurimRouter
 
   # Routes are sorted first by controller name, then by path
   scope "/v1", ThurimClientApi do

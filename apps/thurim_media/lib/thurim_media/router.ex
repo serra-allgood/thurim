@@ -1,13 +1,5 @@
 defmodule ThurimMedia.Router do
-  use ThurimMedia, :router
-
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
-  scope "/api", ThurimMedia do
-    pipe_through :api
-  end
+  use ThurimApiHelpers.ThurimRouter
 
   # Enable LiveDashboard in development
   if Application.compile_env(:thurim_media, :dev_routes) do
@@ -23,5 +15,29 @@ defmodule ThurimMedia.Router do
 
       live_dashboard "/dashboard", metrics: ThurimMedia.Telemetry
     end
+  end
+
+  scope "/", ThurimMedia do
+    pipe_through :access_token
+
+    get "/config", ConfigController, :show
+
+    get "/download/:server_name/:media_id", DownloadController, :show
+    get "/download/:server_name/:media_id/:filename", DownloadController, :show
+    get "/preview_url", DownloadController, :preview
+    get "/thumbnail/:server_name/:media_id", DownloadController, :thumbnail
+  end
+
+  scope "/v1", ThurimMedia do
+    pipe_through :access_token
+
+    post "/create", UploadController, :create
+  end
+
+  scope "/v3", ThurimMedia do
+    pipe_through :access_token
+
+    post "/upload", UploadController, :upload
+    put "/upload/:server_name/:media_id", UploadController, :upload
   end
 end
