@@ -28,19 +28,15 @@ defmodule ThurimGateway.Router do
   scope "/_matrix" do
     pipe_through :matrix
 
-    # /_matrix/client/... → ThurimClientApiWeb.Router
-    forward "/client", ThurimClientApi.Router
-
-    # /_matrix/federation/... → ThurimFederationWeb.Router
-    forward "/federation", ThurimFederation.Router
-
-    # /_matrix/app/... → ThurimAppserviceWeb.Router
-    forward "/app", ThurimAppservice.Router
-
-    # /_matrix/media/... → ThurimMediaWeb.Router
+    forward "/client/v1/media", ThurimMedia.Router
     forward "/media", ThurimMedia.Router
 
-    # /_matrix/key/v2/... (server key API) — handled in federation or inline
+    forward "/client", ThurimClientApi.Router
+
+    forward "/federation", ThurimFederation.Router
+
+    forward "/app", ThurimAppservice.Router
+
     forward "/key", ThurimFederation.Router
   end
 

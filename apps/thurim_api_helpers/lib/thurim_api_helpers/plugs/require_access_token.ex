@@ -1,6 +1,6 @@
-defmodule ThurimClientApi.Plugs.RequireAccessToken do
+defmodule ThurimApiHelpers.Plugs.RequireAccessToken do
   import Plug.Conn
-  import ThurimClientApi.Errors
+  import ThurimApiHelpers.Errors
   alias ThurimCore.Accounts
 
   def init(opts), do: opts

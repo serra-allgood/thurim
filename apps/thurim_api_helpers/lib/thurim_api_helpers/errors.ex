@@ -1,21 +1,17 @@
-defmodule ThurimClientApi.Errors do
+defmodule ThurimApiHelpers.Errors do
   # Inspired by https://github.com/bismark/matrex/blob/master/lib/matrex_web/errors.ex
   import Phoenix.Controller, only: [json: 2]
-  alias Plug.Conn
+  import Plug.Conn
 
-  @typep error :: atom | {atom, any}
-
-  @spec json_error(Conn.t(), error) :: Conn.t()
   def json_error(conn, error) do
     conn
-    |> Conn.put_status(status_code(error))
+    |> put_status(status_code(error))
     |> json(%{
       errcode: error(error),
       error: message(error)
     })
   end
 
-  @spec error(error) :: String.t()
   defp error(:m_forbidden), do: "M_FORBIDDEN"
   defp error(:m_unknown_token), do: "M_UNKNOWN_TOKEN"
   defp error(:m_missing_token), do: "M_MISSING_TOKEN"
@@ -52,7 +48,6 @@ defmodule ThurimClientApi.Errors do
   defp error(:t_not_implemented), do: "THURIM_NOT_IMPLEMENTED"
   defp error(_), do: "M_UNRECOGNIZED"
 
-  @spec status_code(error) :: integer
   defp status_code(:m_user_in_use), do: 400
   defp status_code(:m_invalid_username), do: 400
   defp status_code(:m_invalid_room_state), do: 400
@@ -68,7 +63,6 @@ defmodule ThurimClientApi.Errors do
   defp status_code(:m_unsupported_room_version), do: 400
   defp status_code(_), do: 500
 
-  @spec message(error) :: String.t()
   defp message(:m_user_in_use), do: "User ID already taken"
   defp message(:m_invalid_username), do: "User ID is invalid"
   defp message({:m_missing_arg, key}), do: "Missing required key #{key}"

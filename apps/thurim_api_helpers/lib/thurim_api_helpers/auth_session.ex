@@ -1,4 +1,4 @@
-defmodule ThurimClientApi.AuthSession do
+defmodule ThurimApiHelpers.AuthSession do
   alias ThurimCore.Cache.AuthSessionCache
 
   defstruct id: nil, completed_stages: [], auth_completed: false

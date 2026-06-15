@@ -1,4 +1,4 @@
-defmodule ThurimClientApi.Plugs.ExtractAccessToken do
+defmodule ThurimApiHelpers.Plugs.ExtractAccessToken do
   import Plug.Conn
 
   @access_token_query "access_token"

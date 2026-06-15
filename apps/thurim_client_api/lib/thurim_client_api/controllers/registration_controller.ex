@@ -1,9 +1,8 @@
 defmodule ThurimClientApi.RegistrationController do
   use ThurimClientApi, :controller
 
-  plug ThurimClientApi.Plugs.RateLimit.RegistrationController
+  plug ThurimClientApi.Plugs.RateLimiters.RegistrationController
        when action in ~w(available register)a
-
 
   def available(conn, _params) do
     json_error(conn, :t_not_implemented)
@@ -16,6 +15,7 @@ defmodule ThurimClientApi.RegistrationController do
   def msisdn(conn, _params) do
     json_error(conn, :t_not_implemented)
   end
+
   def register(conn, _params) do
     json_error(conn, :t_not_implemented)
   end

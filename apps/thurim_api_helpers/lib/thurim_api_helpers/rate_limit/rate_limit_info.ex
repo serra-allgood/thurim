@@ -1,4 +1,4 @@
-defmodule ThurimClientApi.RateLimit.RateLimitInfo do
+defmodule ThurimApiHelpers.RateLimit.RateLimitInfo do
   defstruct scale: 0, limit: 0
 
   def new do

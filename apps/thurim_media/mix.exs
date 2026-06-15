@@ -44,7 +44,8 @@ defmodule ThurimMedia.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
-      {:thurim_core, in_umbrella: true}
+      {:thurim_core, in_umbrella: true},
+      {:thurim_api_helpers, in_umbrella: true}
     ]
   end
 

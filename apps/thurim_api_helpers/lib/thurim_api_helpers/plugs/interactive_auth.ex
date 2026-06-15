@@ -1,8 +1,8 @@
-defmodule ThurimWeb.Plugs.InteractiveAuth do
+defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
   import Phoenix.Controller, only: [json: 2]
   import Plug.Conn
   alias ThurimCore.Accounts
-  alias ThurimClientApi.AuthSession
+  alias ThurimApiHelpers.AuthSession
 
   @flows Application.compile_env(:thurim_core, [:matrix, :auth_flows])
 

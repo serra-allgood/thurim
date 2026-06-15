@@ -1,4 +1,4 @@
-defmodule ThurimClientApi.RateLimit do
+defmodule ThurimApiHelpers.RateLimit do
   # Leaky Bucket algorithm chosen for consistent throughput,
   # see https://hammer.hexdocs.pm/Hammer.ETS.LeakyBucket.html
   # for information.
