@@ -1,0 +1,2 @@
+defmodule ThurimApiHelpers.Plugs.MaybeInteractiveAuth do
+end
