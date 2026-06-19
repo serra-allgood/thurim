@@ -21,7 +21,7 @@ config :thurim_core, :matrix,
   auth_flow_types: [%{"type" => "m.login.password"}],
   domain: "localhost",
   homeserver_url: "https://localhost:4001",
-  identity_server_url: "https://matrix.org",
+  identity_server_url: "",
   # One day in seconds
   max_token_age: 86400,
   room_config: %{

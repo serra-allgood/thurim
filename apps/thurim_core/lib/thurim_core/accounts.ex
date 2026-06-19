@@ -123,6 +123,17 @@ defmodule ThurimCore.Accounts do
     |> Repo.delete_all()
   end
 
+  def logout_all(user, device) do
+    {count, nil} =
+      from(d in Device,
+        where: d.user_id == ^user.user_id,
+        where: d.device_id != ^device.device_id
+      )
+      |> Repo.delete_all()
+
+    {:ok, count}
+  end
+
   def mx_user_id(localpart) do
     "@" <> localpart <> ":" <> @domain
   end
@@ -185,6 +196,27 @@ defmodule ThurimCore.Accounts do
   def token_expires_in_ms(%AccessToken{} = token) do
     token.valid_until_ts
     |> DateTime.diff(DateTime.utc_now(:millisecond), :millisecond)
+  end
+
+  def update_password(password, %User{} = user, %Device{} = device, opts \\ []) do
+    logout_devices = Keyword.get(opts, :logout_devices, true)
+
+    multi =
+      Multi.new()
+      |> Multi.update(
+        :change_password,
+        User.update_password_changeset(user, %{password: password})
+      )
+
+    multi =
+      if logout_devices,
+        do:
+          Multi.run(multi, :logout_devices, fn _repo, _changes ->
+            logout_all(user, device)
+          end),
+        else: multi
+
+    Repo.transact(multi)
   end
 
   def username_available?(username) do

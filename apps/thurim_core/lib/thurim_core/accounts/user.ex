@@ -34,4 +34,10 @@ defmodule ThurimCore.Accounts.User do
     |> validate_format(:user_id, ~r/^@[a-z0-9\._\-\/=\+]+:.+$/)
     |> unique_constraint(:localpart)
   end
+
+  def update_password_changeset(%__MODULE__{} = user, attrs) do
+    user
+    |> cast(attrs, [:user_id, :password])
+    |> validate_required([:user_id, :password])
+  end
 end
