@@ -14,7 +14,7 @@ defmodule ThurimCore.Repo.Migrations.CreateMedia do
       add :storage_path, :text, null: false
       add :sha256, :text
       add :quarantined, :boolean, null: false, default: false
-      add :created_ts, :utc_datetime_usec, null: false
+      add :created_ts, :bigint, null: false
     end
 
     create table(:media_thumbnails, primary_key: false) do

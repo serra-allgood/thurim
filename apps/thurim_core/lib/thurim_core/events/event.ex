@@ -1,6 +1,7 @@
 defmodule ThurimCore.Events.Event do
   use Ecto.Schema
   import Ecto.Changeset
+	alias ThurimCore.EctoTypes.UnixTimestamp
 
   @primary_key {:event_id, :string, autogenerate: false}
   schema "events" do
@@ -9,11 +10,9 @@ defmodule ThurimCore.Events.Event do
     field :type, :string
     # nil for message events
     field :state_key, :string
-    # jsonb
     field :content, :map
     field :depth, :integer
-    field :origin_server_ts, :utc_datetime_usec
-    # BIGSERIAL — assigned by DB, never set by app
+    field :origin_server_ts, UnixTimestamp
     field :stream_ordering, :integer
     field :hashes, :map
     field :signatures, :map

@@ -44,10 +44,12 @@ defmodule ThurimApiHelpers.Errors do
   defp error(:m_exclusive), do: "M_EXCLUSIVE"
   defp error(:m_resource_limit_exceeded), do: "M_RESOURCE_LIMIT_EXCEEDED"
   defp error(:m_cannot_leave_server_notice_room), do: "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"
+  defp error(:m_bad_json), do: "M_BAD_JSON"
   defp error(:t_internal_error), do: "THURIM_INTERNAL_ERROR"
   defp error(:t_not_implemented), do: "THURIM_NOT_IMPLEMENTED"
   defp error(_), do: "M_UNRECOGNIZED"
 
+  defp status_code(:m_bad_json), do: 400
   defp status_code(:m_user_in_use), do: 400
   defp status_code(:m_invalid_username), do: 400
   defp status_code(:m_invalid_room_state), do: 400
@@ -61,6 +63,7 @@ defmodule ThurimApiHelpers.Errors do
   defp status_code(:t_internal_error), do: 500
   defp status_code(:t_not_implemented), do: 500
   defp status_code(:m_unsupported_room_version), do: 400
+  defp status_code(:m_guest_access_forbidden), do: 403
   defp status_code(_), do: 500
 
   defp message(:m_user_in_use), do: "User ID already taken"

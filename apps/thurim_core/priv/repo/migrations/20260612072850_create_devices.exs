@@ -8,7 +8,7 @@ defmodule ThurimCore.Repo.Migrations.CreateDevices do
 
       add :device_id, :text, primary_key: true
       add :display_name, :text
-      add :last_seen_ts, :utc_datetime_usec
+      add :last_seen_ts, :bigint
       add :last_seen_ip, :inet
     end
   end

@@ -10,15 +10,24 @@
 import Config
 
 config :thurim_core, :matrix,
+  admin_contact: %{
+    email: "",
+    matrix_id: ""
+  },
   auth_flows: [
     # %{stages: ["m.login.dummy"]},
     %{stages: ["m.login.password"]}
   ],
   auth_flow_types: [%{"type" => "m.login.password"}],
-  default_room_version: "9",
-  supported_room_versions: ~w(9),
   domain: "localhost",
-  homeserver_url: "https://localhost:4001"
+  homeserver_url: "https://localhost:4001",
+  identity_server_url: "https://matrix.org",
+  # One day in seconds
+  max_token_age: 86400,
+  room_config: %{
+    default_room_version: "12",
+    supported_room_versions: ~w(12)
+  }
 
 config :thurim_gateway,
   generators: [context_app: false]

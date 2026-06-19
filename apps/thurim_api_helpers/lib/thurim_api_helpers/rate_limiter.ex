@@ -32,8 +32,15 @@ defmodule ThurimApiHelpers.RateLimiter do
 
           {:deny, retry_after} ->
             conn
+            |> put_resp_header("content-type", "application/json")
             |> put_resp_header("retry-after", Integer.to_string(div(retry_after, 1000)))
-            |> send_resp(429, [])
+            |> send_resp(
+              429,
+              Jason.encode!(%{
+                errcode: "M_LIMIT_EXCEEDED",
+                error: "Rate limit exceeded for thie endpoint."
+              })
+            )
             |> halt()
         end
       end

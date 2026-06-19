@@ -5,6 +5,8 @@ defmodule ThurimClientApi.Router do
     plug ThurimApiHelpers.Plugs.MaybeInteractiveAuth
   end
 
+  get "/versions", VersionController, :index
+
   # Routes are sorted first by controller name, then by path
   scope "/v1", ThurimClientApi do
     pipe_through :access_token
@@ -17,9 +19,11 @@ defmodule ThurimClientApi.Router do
   end
 
   scope "/v1", ThurimClientApi do
-    get "/auth_metadata", SessionController, :auth_metadata
+    # For OAuth 2.0, not supported (yet)
+    get "/auth_metadata", RegistrationController, :auth_metadata
 
-    pipe_through :interactive_auth
+    # For getting a one-time login token, not supported
+    # pipe_through :interactive_auth
     post "/login/get_token", SessionController, :get_token
   end
 

@@ -15,15 +15,10 @@ defmodule ThurimGateway.Router do
     pipe_through :matrix
     get "/client", WellKnownController, :client
     get "/server", WellKnownController, :server
-    get "/support", WellKnownController, :support
   end
 
   # -------------------------------------------------------
   # /_matrix/* — forwarded to sub-app Routers
-  #
-  # forward/4 strips the matched prefix before passing the
-  # conn to the target router, so each sub-router sees paths
-  # relative to its own scope root.
   # -------------------------------------------------------
   scope "/_matrix" do
     pipe_through :matrix

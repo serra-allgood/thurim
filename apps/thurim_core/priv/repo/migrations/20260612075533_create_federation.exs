@@ -9,7 +9,7 @@ defmodule ThurimCore.Repo.Migrations.CreateFederation do
       add :key_id, :text, primary_key: true
       # base64-encoded key
       add :verify_key, :text, null: false
-      add :valid_until_ts, :utc_datetime_usec
+      add :valid_until_ts, :bigint
     end
 
     # Outbound federation queue: PDUs and EDUs per destination
@@ -24,9 +24,9 @@ defmodule ThurimCore.Repo.Migrations.CreateFederation do
     # Per-destination delivery state and retry backoff tracking
     create table(:federation_destinations, primary_key: false) do
       add :destination, :text, primary_key: true
-      add :last_successful_ts, :utc_datetime_usec
+      add :last_successful_ts, :bigint
       add :retry_interval, :bigint, null: false, default: 0
-      add :retry_last_ts, :utc_datetime_usec
+      add :retry_last_ts, :bigint
     end
   end
 end

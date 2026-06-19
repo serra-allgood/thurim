@@ -43,7 +43,8 @@ defmodule ThurimCore.MixProject do
       {:jason, "~> 1.2"},
       {:fields, "~> 2.11"},
       {:nebulex, "~> 3.0"},
-      {:nebulex_adapters_cachex, "~> 3.0"}
+      {:nebulex_adapters_cachex, "~> 3.0"},
+      {:uuid, "~> 1.1"}
     ]
   end
 

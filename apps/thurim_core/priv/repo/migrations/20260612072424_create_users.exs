@@ -3,10 +3,10 @@ defmodule ThurimCore.Repo.Migrations.CreateUsers do
 
   def change do
     create table(:users, primary_key: false) do
-      # '@alice:thurim.example.org'
       add :user_id, :text, primary_key: true
       add :localpart, :text, null: false
-      add :password_hash, :binary
+      # Stored as an encrypted hash
+      add :password, :binary
       add :display_name, :text
       add :avatar_url, :text
       add :is_guest, :boolean, null: false, default: false
@@ -16,7 +16,7 @@ defmodule ThurimCore.Repo.Migrations.CreateUsers do
       add :appservice_id,
           references(:appservices, column: :appservice_id, type: :text, on_delete: :nilify_all)
 
-      add :created_ts, :utc_datetime_usec, null: false
+      add :created_ts, :bigint, null: false
     end
 
     create unique_index(:users, [:localpart])
@@ -34,8 +34,8 @@ defmodule ThurimCore.Repo.Migrations.CreateUsers do
       # 'email' | 'msisdn'
       add :medium, :text, primary_key: true
       add :address, :text, primary_key: true
-      add :validated_ts, :utc_datetime_usec
-      add :added_ts, :utc_datetime_usec, null: false
+      add :validated_ts, :bigint
+      add :added_ts, :bigint, null: false
     end
 
     create constraint(:user_threepids, :valid_medium, check: "medium IN ('email', 'msisdn')")

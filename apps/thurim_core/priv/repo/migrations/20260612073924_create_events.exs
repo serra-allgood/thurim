@@ -15,7 +15,7 @@ defmodule ThurimCore.Repo.Migrations.CreateEvents do
       # jsonb
       add :content, :map, null: false
       add :depth, :bigint, null: false
-      add :origin_server_ts, :utc_datetime_usec, null: false
+      add :origin_server_ts, :bigint, null: false
       # DB-assigned monotonic cursor for /sync pagination — never set by application code
       add :stream_ordering, :bigserial
       add :hashes, :map

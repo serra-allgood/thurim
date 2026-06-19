@@ -10,9 +10,9 @@ defmodule ThurimApiHelpers.Plugs.RequireAccessToken do
          {:ok, access_token} when not is_nil(access_token) <-
            Accounts.verify_signed_access_token(signed_access_token) do
       conn
-      |> assign(:device_id, access_token.device)
+      |> assign(:current_device, access_token.device)
       |> assign(:access_token, access_token)
-      |> assign(:user, access_token.user)
+      |> assign(:current_user, access_token.user)
     else
       :error ->
         conn |> json_error(:m_missing_token) |> halt()
