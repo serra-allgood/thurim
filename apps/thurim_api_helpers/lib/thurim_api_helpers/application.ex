@@ -10,7 +10,7 @@ defmodule ThurimApiHelpers.Application do
     children = [
       # Starts a worker by calling: ThurimApiHelpers.Worker.start_link(arg)
       # {ThurimApiHelpers.Worker, arg}
-      {ThurimClientApi.RateLimit,
+      {ThurimApiHelpers.RateLimit,
        [clean_period: :timer.minutes(1), key_older_than: :timer.hours(24)]}
     ]
 

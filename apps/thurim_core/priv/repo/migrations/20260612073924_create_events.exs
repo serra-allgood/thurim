@@ -25,6 +25,8 @@ defmodule ThurimCore.Repo.Migrations.CreateEvents do
       add :redacted_by, :text
       add :outlier, :boolean, null: false, default: false
       add :rejected_reason, :text
+      add :prev_events, {:array, :text}, null: false, default: []
+      add :auth_events, {:array, :text}, null: false, default: []
     end
 
     alter table(:events) do

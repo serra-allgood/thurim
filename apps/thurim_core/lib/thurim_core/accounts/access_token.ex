@@ -1,9 +1,7 @@
 defmodule ThurimCore.Accounts.AccessToken do
   use Ecto.Schema
   import Ecto.Changeset
-  alias ThurimCore.{Accounts.Device, Accounts.User, EctoTypes.UnixTimestamp}
-
-  @max_token_age Application.compile_env(:thurim_core, [:matrix, :max_token_age])
+  alias ThurimCore.{Accounts.Device, Accounts.User, EctoTypes.UnixTimestamp, MatrixConfig}
 
   @primary_key {:id, :binary_id, autogenerate: false}
   schema "access_tokens" do
@@ -22,6 +20,6 @@ defmodule ThurimCore.Accounts.AccessToken do
 
   def generate_valid_until_ts() do
     DateTime.utc_now(:millisecond)
-    |> DateTime.shift(second: @max_token_age)
+    |> DateTime.shift(second: MatrixConfig.max_token_age())
   end
 end

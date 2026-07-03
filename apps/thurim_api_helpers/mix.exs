@@ -31,7 +31,6 @@ defmodule ThurimApiHelpers.MixProject do
       # {:sibling_app_in_umbrella, in_umbrella: true}
       {:phoenix, "~> 1.8.8"},
       {:hammer, "~> 7.4"},
-      {:ua_parser, "~> 1.10"},
       {:thurim_core, in_umbrella: true}
     ]
   end

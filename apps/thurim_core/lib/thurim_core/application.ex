@@ -15,7 +15,8 @@ defmodule ThurimCore.Application do
       {PartitionSupervisor,
        child_spec: DynamicSupervisor, name: ThurimCore.DynamicRoomSupervisors},
       {DynamicSupervisor, name: ThurimCore.Federation.DynamicOutboundSupervisors},
-      ThurimCore.Cache.AuthSessionCache
+      ThurimCore.Cache.AuthSessionCache,
+      ThurimCore.Keys.SigningKeyStore
       # ThurimCore.Sync.StreamCounter
       # Start a worker by calling: ThurimCore.Worker.start_link(arg)
       # {ThurimCore.Worker, arg}

@@ -1,10 +1,8 @@
 defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
   import Phoenix.Controller, only: [json: 2]
   import Plug.Conn
-  alias ThurimCore.Accounts
+  alias ThurimCore.{Accounts, MatrixConfig}
   alias ThurimApiHelpers.AuthSession
-
-  @flows Application.compile_env(:thurim_core, [:matrix, :auth_flows])
 
   def init(options), do: options
 
@@ -21,6 +19,10 @@ defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
       pass_or_challenge(conn, session)
     end
   end
+
+	defp auth_flows do
+		MatrixConfig.auth_flows()
+	end
 
   defp valid_auth?(auth) when is_nil(auth), do: false
 
@@ -69,7 +71,7 @@ defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
 
       {:ok, %AuthSession{} = session} ->
         check =
-          Enum.map(@flows, fn flow -> flow.stages -- session.completed_stages end)
+          Enum.map(auth_flows(), fn flow -> flow.stages -- session.completed_stages end)
           |> Enum.find(fn stages -> length(stages) == 0 end)
 
         if check || String.match?(conn.request_path, ~r{register}) do
@@ -86,7 +88,7 @@ defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
     conn
     |> put_status(401)
     |> json(%{
-      flows: @flows,
+      flows: auth_flows(),
       session: session.id,
       params: [],
       completed: []
@@ -103,7 +105,7 @@ defmodule ThurimApiHelpers.Plugs.InteractiveAuth do
       conn
       |> put_status(401)
       |> json(%{
-        flows: @flows,
+        flows: auth_flows(),
         session: session.id,
         params: [],
         completed: session.completed_stages

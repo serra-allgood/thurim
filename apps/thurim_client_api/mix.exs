@@ -43,6 +43,7 @@ defmodule ThurimClientApi.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
+      {:jcs, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:thurim_core, in_umbrella: true},
       {:thurim_api_helpers, in_umbrella: true}

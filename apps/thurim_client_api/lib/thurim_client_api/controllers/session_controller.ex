@@ -1,8 +1,6 @@
 defmodule ThurimClientApi.SessionController do
   use ThurimClientApi, :controller
-  alias ThurimCore.Accounts
-
-  @matrix_config Application.compile_env(:thurim_core, :matrix)
+  alias ThurimCore.{Accounts, MatrixConfig}
 
   plug ThurimClientApi.Plugs.RateLimiters.SessionController
        when action in ~w(get_token login login_types refresh)a
@@ -50,7 +48,7 @@ defmodule ThurimClientApi.SessionController do
   end
 
   def login_types(conn, _params) do
-    json(conn, %{flows: @matrix_config[:auth_flow_types]})
+    json(conn, %{flows: MatrixConfig.auth_flow_types()})
   end
 
   def logout(conn, _params) do

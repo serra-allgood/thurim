@@ -7,12 +7,9 @@ defmodule ThurimCore.Accounts do
     Accounts.Device,
     Accounts.RefreshToken,
     Accounts.User,
+    MatrixConfig,
     Repo
   }
-
-  @matrix_config Application.compile_env(:thurim_core, :matrix)
-  @domain @matrix_config[:domain]
-  @max_token_age @matrix_config[:max_token_age]
 
   def authenticate_user(user_id, password) do
     with user when not is_nil(user) <- get_user(user_id),
@@ -74,7 +71,9 @@ defmodule ThurimCore.Accounts do
   end
 
   def generate_refresh_token(user_id) do
-    Phoenix.Token.sign(ThurimGateway.Endpoint, "refresh_token", user_id, max_age: @max_token_age)
+    Phoenix.Token.sign(ThurimGateway.Endpoint, "refresh_token", user_id,
+      max_age: MatrixConfig.max_token_age()
+    )
   end
 
   def generate_user_localpart() do
@@ -135,7 +134,7 @@ defmodule ThurimCore.Accounts do
   end
 
   def mx_user_id(localpart) do
-    "@" <> localpart <> ":" <> @domain
+    "@" <> localpart <> ":" <> MatrixConfig.server_name()
   end
 
   def new_refresh_token_changeset(user, device) do
@@ -189,7 +188,7 @@ defmodule ThurimCore.Accounts do
 
   def sign_access_token(%AccessToken{} = access_token) do
     Phoenix.Token.sign(ThurimGateway.Endpoint, "access_token", access_token.id,
-      max_age: @max_token_age
+      max_age: MatrixConfig.max_token_age()
     )
   end
 
@@ -230,7 +229,7 @@ defmodule ThurimCore.Accounts do
   def verify_signed_access_token(signed_access_token) do
     with {:ok, access_token_id} <-
            Phoenix.Token.verify(ThurimGateway.Endpoint, "access_token", signed_access_token,
-             max_age: @max_token_age
+             max_age: MatrixConfig.max_token_age()
            ),
          access_token when not is_nil(access_token) <-
            get_access_token_with_preloads(access_token_id) do

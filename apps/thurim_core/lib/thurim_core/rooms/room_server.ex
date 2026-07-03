@@ -1,8 +1,10 @@
 defmodule ThurimCore.Rooms.RoomServer do
-  use GenServer
-  alias ThurimCore.{Repo, Events}
+  use GenServer, restart: :temporary
+  alias ThurimCore.{Rooms, Rooms.RoomServer.State}
 
-  # --- Client API ---
+  defp schedule_idle_shutdown do
+    Process.send_after(self(), :shutdown, 5 * 60 * 1000)
+  end
 
   def start_link(room_id) do
     GenServer.start_link(__MODULE__, room_id, name: via(room_id))
@@ -29,18 +31,26 @@ defmodule ThurimCore.Rooms.RoomServer do
     end
   end
 
-  # --- Server Callbacks ---
-
   @impl true
   def init(room_id) do
-    extremities = []
-    # Repo.all(
-    #   from e in "room_forward_extremities",
-    #     where: e.room_id == ^room_id,
-    #     select: e.event_id
-    # )
+    extremities =
+      room_id
+      |> Rooms.all_forward_extremities()
+      |> MapSet.new()
 
-    {:ok, %{room_id: room_id, extremities: MapSet.new(extremities)}}
+    current_state =
+      room_id
+      |> Rooms.current_state_events()
+      |> Map.new(fn s -> {{s.type, s.state_key}, s.event} end)
+
+    {:ok,
+     %State{
+       room_id: room_id,
+       room_version: Rooms.load_room_version(room_id),
+       forward_extremities: extremities,
+       current_state: current_state,
+       idle_timer: schedule_idle_shutdown()
+     }}
   end
 
   # @impl true

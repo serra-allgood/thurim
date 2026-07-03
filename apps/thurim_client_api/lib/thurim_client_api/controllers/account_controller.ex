@@ -1,5 +1,6 @@
 defmodule ThurimClientApi.AccountController do
   use ThurimClientApi, :controller
+	alias ThurimCore.Accounts
 
   plug ThurimClientApi.Plugs.RateLimiters.AccountController
        when action in ~w(add_threepid bind_threepid deactivate change_password whoami)a

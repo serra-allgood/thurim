@@ -25,8 +25,25 @@ config :thurim_core, :matrix,
   # One day in seconds
   max_token_age: 86400,
   room_config: %{
-    default_room_version: "12",
-    supported_room_versions: ~w(12)
+    # Based on https://spec.matrix.org/v1.18/client-server-api/#mroompower_levels
+    default_power_levels: %{
+      "ban" => 50,
+      "events" => %{
+        "m.room.tombstone" => 150
+      },
+      "events_default" => 0,
+      "invite" => 0,
+      "kick" => 50,
+      "notifications" => %{
+        "room" => 50
+      },
+      "redcat" => 50,
+      "state_default" => 50,
+      "users" => %{},
+      "users_default" => 0
+    },
+    default_room_version: "v12",
+    supported_room_versions: ~w(v12)
   }
 
 config :thurim_gateway,

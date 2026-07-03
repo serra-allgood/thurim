@@ -12,17 +12,17 @@ defmodule ThurimCore.Repo.Migrations.CreateRooms do
       add :created_ts, :bigint, null: false
     end
 
-    create table(:room_aliases, primary_key: false) do
-      add :alias, :text, primary_key: true
+    # create table(:room_aliases, primary_key: false) do
+    #   add :alias, :text, primary_key: true
 
-      add :room_id, references(:rooms, column: :room_id, type: :text, on_delete: :delete_all),
-        null: false
+    #   add :room_id, references(:rooms, column: :room_id, type: :text, on_delete: :delete_all),
+    #     null: false
 
-      add :creator, :text
-      add :is_canonical, :boolean, null: false, default: false
-      add :servers, {:array, :text}
-    end
+    #   add :creator, :text
+    #   add :is_canonical, :boolean, null: false, default: false
+    #   add :servers, {:array, :text}
+    # end
 
-    create index(:room_aliases, [:room_id], name: :idx_aliases_room)
+    # create index(:room_aliases, [:room_id], name: :idx_aliases_room)
   end
 end

@@ -1,3 +1,5 @@
+![thurim-logo.png](./thurim-logo.png)
+
 # Thurim
 
 Thurim is a [Matrix](https://matrix.org) homeserver implementation written in Elixir with the Phoenix framework. It is inspired in part by [Plasma](https://gitlab.com/beerfactory.org/plasma) as well as [Dendrite](https://github.com/matrix-org/dendrite).
@@ -50,3 +52,7 @@ explore its usage and found it to be suprisingly useful, as long as I think abou
 output of the model critically. For this reason, I'm tentatively comfortable with
 contributors using AI, though I draw the line at unreviewed code and PR summaries
 that are AI output. If you want to use AI, use it appropriately, not willy-nilly.
+
+## Logo Credit
+
+The lovely rune droplet logo for Thurim was created by @amazing_Ekka@ohai.social on the Fediverse!

@@ -37,6 +37,7 @@ defmodule ThurimCore.MixProject do
   defp deps do
     [
       {:dns_cluster, "~> 0.2.0"},
+      {:phoenix, "~> 1.8.8"},
       {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
@@ -44,7 +45,8 @@ defmodule ThurimCore.MixProject do
       {:fields, "~> 2.11"},
       {:nebulex, "~> 3.0"},
       {:nebulex_adapters_cachex, "~> 3.0"},
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:ua_parser, "~> 1.10"}
     ]
   end
 
