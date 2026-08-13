@@ -14,7 +14,7 @@ defmodule ThurimCore.Events.CurrentStateEvent do
 
   def changeset(%__MODULE__{} = event, attrs) do
     event
-    |> cast(attrs, @fields)
+    |> cast(attrs, @fields, empty_values: [])
     |> validate_required(@fields)
   end
 end

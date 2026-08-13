@@ -29,7 +29,7 @@ defmodule ThurimCore.Events.Event do
 
   def changeset(event, attrs) do
     event
-    |> cast(attrs, @required ++ @optional)
+    |> cast(attrs, @required ++ @optional, empty_values: [])
     |> validate_required(@required)
     |> validate_length(:type, min: 1)
     |> foreign_key_constraint(:room_id)

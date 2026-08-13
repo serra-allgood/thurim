@@ -9,7 +9,8 @@ defmodule ThurimCore.Rooms do
     Events.Event,
     Events.RoomForwardExtremity,
     Rooms.Room,
-    Repo
+    Repo,
+    Sync.Notifier
   }
 
   def all_forward_extremities(room_id) do
@@ -24,16 +25,14 @@ defmodule ThurimCore.Rooms do
   def create_room(params) do
     initial_state = Map.get(params, "initial_state", [])
     invite = Map.get(params, "invite", [])
+    room_params = Map.put(params, "is_public", params["visibility"] == "public")
+    room_create_event = Events.build_event("m.room.create", nil, params)
+    room_id = Ecto.Changeset.get_field(room_create_event, :room_id)
 
     multi =
       Multi.new()
-      |> Multi.insert(
-        :m_room_create,
-        Events.build_event("m.room.create", nil, params)
-      )
-      |> Multi.insert(:room, fn %{m_room_create: event} ->
-        Room.create_changeset(%Room{room_id: extract_room_id(event)}, params)
-      end)
+      |> Multi.insert(:room, Room.create_changeset(%Room{room_id: room_id}, room_params))
+      |> Multi.insert(:m_room_create, room_create_event)
       |> Multi.insert(:m_room_member, fn %{room: room, m_room_create: prev_event} ->
         Events.build_event("m.room.member", room, params,
           prev_events: [prev_event.event_id],
@@ -122,7 +121,7 @@ defmodule ThurimCore.Rooms do
           Events.build_state_event(
             "m.room.topic",
             room,
-            Map.merge(params, %{"content" => %{"name" => params["name"]}}),
+            Map.merge(params, %{"content" => %{"topic" => params["topic"]}}),
             prev_events: [latest_event.event_id],
             depth: latest_event.depth + 1
           )
@@ -145,7 +144,20 @@ defmodule ThurimCore.Rooms do
       |> Events.insert_event_edges()
       |> Events.project_current_state()
 
-    Repo.transact(multi)
+    case Repo.transact(multi) do
+      {:ok, %{room: room}} ->
+        Notifier.notify_room_update(room.room_id)
+        Notifier.notify_user_update(params["creator"])
+
+        Enum.each(invite, fn invited_user_id ->
+          Notifier.notify_user_update(invited_user_id)
+        end)
+
+        {:ok, room}
+
+      error ->
+        error
+    end
   end
 
   def extract_room_id(%Event{type: "m.room.create"} = event) do
@@ -171,12 +183,10 @@ defmodule ThurimCore.Rooms do
   end
 
   def get_latest_event_from_changes(changes) do
-    latest_depth =
-      Enum.map(changes, fn change -> Map.get(change, :depth, 0) end)
-      |> Enum.sort(:desc)
-      |> List.first()
-
-    Enum.find(changes, fn change -> change[:depth] == latest_depth end)
+    changes
+    |> Map.values()
+    |> Enum.filter(&match?(%Event{}, &1))
+    |> Enum.max_by(& &1.depth)
   end
 
   def load_room_version(room_id) do

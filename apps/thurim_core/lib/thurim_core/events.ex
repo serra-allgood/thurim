@@ -46,7 +46,7 @@ defmodule ThurimCore.Events do
       "state_key" => "",
       "room_id" => room.room_id,
       "depth" => depth,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => %{
         "alias" => room_alias,
@@ -74,7 +74,7 @@ defmodule ThurimCore.Events do
       "type" => type,
       "state_key" => "",
       "depth" => depth,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => %{
         "guest_access" => "forbidden"
@@ -101,7 +101,7 @@ defmodule ThurimCore.Events do
       "type" => type,
       "state_key" => "",
       "depth" => depth,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => %{
         "history_visibility" => history_visibility
@@ -135,7 +135,7 @@ defmodule ThurimCore.Events do
       "type" => type,
       "state_key" => "",
       "depth" => depth,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       # TODO: Implement restricted rooms
       "content" => %{
@@ -159,7 +159,7 @@ defmodule ThurimCore.Events do
       "type" => "m.room.create",
       "state_key" => "",
       "depth" => 0,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => build_event_content(type, params, room_version: room_version)
     }
@@ -189,7 +189,7 @@ defmodule ThurimCore.Events do
       "type" => "m.room.member",
       "depth" => depth,
       "state_key" => if(membership == "join", do: sender, else: params["state_key"]),
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => build_event_content(type, params, membership: membership)
     }
@@ -213,7 +213,7 @@ defmodule ThurimCore.Events do
       "type" => type,
       "depth" => depth,
       "state_key" => "",
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => build_event_content(type, params)
     }
@@ -234,7 +234,7 @@ defmodule ThurimCore.Events do
   # 3. Finally, override whatever room_version was sent with the actual room_version
   def build_event_content("m.room.create", params, options) do
     room_version = Keyword.fetch!(options, :room_version)
-    creation_content = Map.get(params, "creation_content", %{"m.federate" => true})
+    creation_content = Map.get(params, "creation_content") || %{"m.federate" => true}
     preset = Rooms.get_chat_preset(params)
 
     creation_content =
@@ -298,7 +298,7 @@ defmodule ThurimCore.Events do
       "state_key" => Map.get(params, "state_key", ""),
       "room_id" => room.room_id,
       "depth" => depth,
-      "origin_server_ts" => DateTime.utc_now(:millisecond),
+      "origin_server_ts" => origin_server_ts(),
       "sender" => sender,
       "content" => content
     }
@@ -312,6 +312,11 @@ defmodule ThurimCore.Events do
     |> Jcs.encode()
     |> then(&:crypto.hash(:sha256, &1))
     |> Base.url_encode64(padding: false)
+  end
+
+  defp origin_server_ts do
+    DateTime.utc_now()
+    |> DateTime.to_unix(:millisecond)
   end
 
   def event_id(event, room_version) do
@@ -355,65 +360,51 @@ defmodule ThurimCore.Events do
 
   def insert_event_edges(multi) do
     Multi.run(multi, :insert_event_edges, fn _repo, changes ->
-      Enum.filter(changes, fn change ->
-        not is_nil(change[:event_id])
-      end)
-      |> Enum.reduce(multi, fn event_change, multi ->
-        multi =
-          Enum.reduce(event_change.prev_events, multi, fn prev_event_id, multi ->
-            Multi.insert(
-              multi,
-              "insert_prev_event_edge_#{prev_event_id}_for_#{event_change.event_id}}",
-              EventEdge.changeset(%EventEdge{}, %{
-                prev_event_id: prev_event_id,
-                event_id: event_change.event_id
-              })
-            )
-          end)
-
-        Enum.reduce(event_change.auth_events, multi, fn auth_event_id, multi ->
-          Multi.insert(
-            multi,
-            "insert_auth_event_#{auth_event_id}_for_#{event_change.event_id}",
+      changes
+      |> event_changes()
+      |> Enum.flat_map(fn event ->
+        Enum.map(event.prev_events, fn prev_event_id ->
+          EventEdge.changeset(%EventEdge{}, %{
+            prev_event_id: prev_event_id,
+            event_id: event.event_id
+          })
+        end) ++
+          Enum.map(event.auth_events, fn auth_event_id ->
             EventAuth.changeset(%EventAuth{}, %{
-              event_id: event_change.event_id,
+              event_id: event.event_id,
               auth_event_id: auth_event_id
             })
-          )
-        end)
+          end)
       end)
-
-      {:ok, nil}
+      |> persist_changesets()
     end)
   end
 
   def project_current_state(multi) do
     Multi.run(multi, :project_current_state, fn _repo, changes ->
-      Enum.filter(changes, fn change -> not is_nil(change[:state_key]) end)
-      |> Enum.reduce(multi, fn state_event, multi ->
-        Multi.run(multi, "project_current_state_for_#{state_event.event_id}", fn _repo,
-                                                                                 _changes ->
-          case Repo.get_by(CurrentStateEvent,
-                 room_id: state_event.room_id,
-                 type: state_event.type,
-                 state_key: state_event.state_key
-               ) do
-            nil ->
-              %CurrentStateEvent{
-                room_id: state_event.room_id,
-                type: state_event.type,
-                state_key: state_event.state_key
-              }
+      changes
+      |> event_changes()
+      |> Enum.filter(fn event -> not is_nil(event.state_key) end)
+      |> Enum.map(fn state_event ->
+        case Repo.get_by(CurrentStateEvent,
+               room_id: state_event.room_id,
+               type: state_event.type,
+               state_key: state_event.state_key
+             ) do
+          nil ->
+            %CurrentStateEvent{
+              room_id: state_event.room_id,
+              type: state_event.type,
+              state_key: state_event.state_key
+            }
 
-            current_state_event ->
-              current_state_event
-          end
-          |> CurrentStateEvent.changeset(%{event_id: state_event.event_id})
-          |> Repo.insert_or_update()
-        end)
+          current_state_event ->
+            current_state_event
+        end
+        |> CurrentStateEvent.changeset(%{event_id: state_event.event_id})
+        |> Repo.insert_or_update()
       end)
-
-      {:ok, nil}
+      |> persist_results()
     end)
   end
 
@@ -461,6 +452,28 @@ defmodule ThurimCore.Events do
     )
     |> then(&from(se in &1, select: se.event_id))
     |> Repo.all()
+  end
+
+  defp event_changes(changes) do
+    changes
+    |> Map.values()
+    |> Enum.filter(fn
+      %Event{event_id: event_id} -> not is_nil(event_id)
+      _ -> false
+    end)
+  end
+
+  defp persist_changesets(changesets) do
+    changesets
+    |> Enum.map(&Repo.insert/1)
+    |> persist_results()
+  end
+
+  defp persist_results(results) do
+    case Enum.find(results, &match?({:error, _}, &1)) do
+      nil -> {:ok, nil}
+      {:error, changeset} -> {:error, changeset}
+    end
   end
 
   @doc """

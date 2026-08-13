@@ -15,7 +15,7 @@ defmodule ThurimCore.Rooms.Room do
     has_many :events, Event, foreign_key: :room_id, references: :room_id
   end
 
-  @create_fields ~w(room_id room_version creator is_public predecessor_room_id created_ts)a
+  @create_fields ~w(room_id room_version creator is_public)a
 
   def create_changeset(%__MODULE__{} = room, attrs) do
     room

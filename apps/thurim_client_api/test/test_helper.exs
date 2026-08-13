@@ -1,2 +1,2 @@
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(ThurimClientApi.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(ThurimCore.Repo, :manual)

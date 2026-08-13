@@ -1,0 +1,21 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "thurim-postgres-url",
+      "description": "PostgreSQL connection URL for Thurim",
+      "password": true
+    }
+  ],
+  "servers": {
+    "thurim-postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "${input:thurim-postgres-url}"
+      ]
+    }
+  }
+}

@@ -3,7 +3,7 @@ defmodule ThurimCore.EctoTypes.UnixTimestamp do
   def type, do: :bigint
 
   def cast(%DateTime{} = v), do: {:ok, DateTime.to_unix(v, :millisecond)}
-  # def cast(v) when is_integer(v), do: {:ok, v}
+  def cast(v) when is_integer(v), do: {:ok, v}
   def cast(_), do: :error
   def load(v), do: DateTime.from_unix(v, :millisecond)
   def dump(%DateTime{} = v), do: {:ok, DateTime.to_unix(v, :millisecond)}
